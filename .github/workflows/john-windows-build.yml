@@ -1,0 +1,96 @@
+# Persoonlijke Windows-build voor aquinox/lightcraft (niet bedoeld voor upstream).
+# Bouwt lightcraft.exe en lightcraft-cli.exe voor Windows x64 bij elke push naar een `john-*`-branch
+# en uploadt een portable zip als artifact. Staat "[release]" in het commitbericht, dan komt de zip
+# ook als pre-release op de Releases-pagina van de fork.
+name: Windows-build (persoonlijk)
+
+on:
+  push:
+    branches: ["john-*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: john-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust stable
+        shell: pwsh
+        run: |
+          rustup toolchain install stable --profile minimal --target x86_64-pc-windows-msvc
+          rustup default stable
+          rustc --version
+          cargo --version
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: john-windows-x64
+
+      - name: Fonts (craft-fonts, zoals de officiële builds)
+        shell: pwsh
+        run: |
+          . packaging/windows/fonts.ps1
+          Initialize-CraftFonts $PWD.Path
+          "CRAFT_FONTS_DIR=$env:CRAFT_FONTS_DIR" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CRAFT_FONTS_REQUIRED=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Bouwen (release, statische C-runtime)
+        shell: pwsh
+        run: |
+          $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = '-C target-feature=+crt-static'
+          $env:LIGHTCRAFT_BUILD_SHA = (git rev-parse HEAD)
+          $env:LIGHTCRAFT_BUILD_DATE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          cargo build --release --locked -p lightcraft -p lightcraft-cli --features lightcraft/heif,lightcraft-cli/heif --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw "cargo build faalde ($LASTEXITCODE)" }
+
+      - name: Portable zip
+        id: zip
+        shell: pwsh
+        run: |
+          $short = (git rev-parse --short=8 HEAD)
+          $name = "lightcraft-tone-v11-$short-windows-x64-portable"
+          $stage = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $bin = 'target\x86_64-pc-windows-msvc\release'
+          Copy-Item (Join-Path $bin 'lightcraft.exe'), (Join-Path $bin 'lightcraft-cli.exe') $stage
+          Copy-Item NOTICE, LICENSE-MIT, LICENSE-APACHE $stage
+          if (Test-Path JOHN-BUILD.txt) { Copy-Item JOHN-BUILD.txt (Join-Path $stage 'LEESMIJ.txt') }
+          $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
+          Compress-Archive -Path $stage -DestinationPath $zip
+          (Get-FileHash $zip -Algorithm SHA256).Hash | Out-File (Join-Path $env:RUNNER_TEMP "$name.zip.sha256") -Encoding ascii
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "short=$short" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: ${{ steps.zip.outputs.zip }}
+          retention-days: 30
+
+      - name: Pre-release
+        if: contains(github.event.head_commit.message, '[release]')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "tone-v11-${{ steps.zip.outputs.short }}"
+          $notes = if (Test-Path JOHN-BUILD.txt) { 'JOHN-BUILD.txt' } else { $null }
+          if ($notes) {
+            gh release create $tag "${{ steps.zip.outputs.zip }}" --prerelease --target "${{ github.sha }}" --title "LightCraft met Lightroom-achtige tone sliders ($tag)" --notes-file $notes
+          } else {
+            gh release create $tag "${{ steps.zip.outputs.zip }}" --prerelease --target "${{ github.sha }}" --title "LightCraft ($tag)" --notes "Persoonlijke build"
+          }
+          if ($LASTEXITCODE -ne 0) { throw "release maken faalde" }
