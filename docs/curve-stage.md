@@ -3,7 +3,7 @@
 > **Changes:** [revision history](#revision-history)
 
 Process V11 renders Whites, the parametric curve and the point curves the way Lightroom does, from measurements of
-Camera Raw's output. V1 to V8 are unchanged (`docs/process-versions.md`). The code is
+Camera Raw's output. V1 to V10 are unchanged (`docs/process-versions.md`). The code is
 `crates/pipeline/src/curve_stage.rs`, its measured tables `crates/pipeline/src/curve_stage_tables.rs`, and the GPU
 kernel's `curve_stage` in `crates/gpu/src/wgsl/finish.wgsl`.
 
@@ -20,7 +20,7 @@ display-encoded output. Measured against Camera Raw, this goes wrong in three wa
   saturates. Lightroom's master curve keeps the hue. It maps the largest and the smallest channel through the curve,
   and the middle channel keeps its relative position between them in linear light.
 
-## What V9 does
+## What V11 does
 
 After the tone map, V4's calibrated Contrast and Blacks and V11's colour mixer ([mixer-stage.md](mixer-stage.md)),
 before the colour stage:

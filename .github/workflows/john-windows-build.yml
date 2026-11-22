@@ -1,8 +1,8 @@
-# Persoonlijke Windows-build voor aquinox/lightcraft (niet bedoeld voor upstream).
-# Bouwt lightcraft.exe en lightcraft-cli.exe voor Windows x64 bij elke push naar een `john-*`-branch
-# en uploadt een portable zip als artifact. Staat "[release]" in het commitbericht, dan komt de zip
-# ook als pre-release op de Releases-pagina van de fork.
-name: Windows-build (persoonlijk)
+# Persoonlijke builds voor aquinox/lightcraft (niet bedoeld voor upstream).
+# Bouwt LightCraft voor Windows x64 (portable zip) en Linux x86_64 (AppImage en tar.gz) bij elke
+# push naar een `john-*`-branch en uploadt ze als artifacts. Staat "[release]" in het commitbericht,
+# dan komen ze ook samen als pre-release op de Releases-pagina van de fork.
+name: Windows- en Linux-build (persoonlijk)
 
 on:
   push:
@@ -10,10 +10,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: john-windows-${{ github.ref }}
+  group: john-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -67,30 +67,90 @@ jobs:
           Copy-Item (Join-Path $bin 'lightcraft.exe'), (Join-Path $bin 'lightcraft-cli.exe') $stage
           Copy-Item NOTICE, LICENSE-MIT, LICENSE-APACHE $stage
           if (Test-Path JOHN-BUILD.txt) { Copy-Item JOHN-BUILD.txt (Join-Path $stage 'LEESMIJ.txt') }
-          $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
-          Compress-Archive -Path $stage -DestinationPath $zip
-          (Get-FileHash $zip -Algorithm SHA256).Hash | Out-File (Join-Path $env:RUNNER_TEMP "$name.zip.sha256") -Encoding ascii
-          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $out = Join-Path $env:RUNNER_TEMP 'out'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Compress-Archive -Path $stage -DestinationPath (Join-Path $out "$name.zip")
           "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "short=$short" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "out=$out" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.zip.outputs.name }}
-          path: ${{ steps.zip.outputs.zip }}
+          name: windows-x64
+          path: ${{ steps.zip.outputs.out }}
           retention-days: 30
 
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Systeempakketten
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev libxcursor-dev \
+            libxrandr-dev libxi-dev libfontconfig1-dev libfreetype-dev libgl1-mesa-dev libdbus-1-dev \
+            desktop-file-utils zsync
+
+      - name: Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: john-linux-x64
+
+      - name: Bouwen en verpakken (AppImage en tar.gz)
+        env:
+          DIST: ${{ runner.temp }}/dist
+        run: packaging/linux/package.sh --formats "appimage tar"
+
+      - name: Bestanden hernoemen
+        id: files
+        run: |
+          short=$(git rev-parse --short=8 HEAD)
+          out="$RUNNER_TEMP/out"
+          mkdir -p "$out"
+          for f in "$RUNNER_TEMP"/dist/*.AppImage "$RUNNER_TEMP"/dist/*.tar.gz; do
+            [ -e "$f" ] || continue
+            ext="${f##*.}"; [ "$ext" = gz ] && ext=tar.gz
+            cp "$f" "$out/lightcraft-tone-v11-$short-linux-x86_64.$ext"
+          done
+          ls -l "$out"
+          echo "out=$out" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: ${{ steps.files.outputs.out }}
+          retention-days: 30
+
+  release:
+    if: contains(github.event.head_commit.message, '[release]')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
       - name: Pre-release
-        if: contains(github.event.head_commit.message, '[release]')
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "tone-v11-${{ steps.zip.outputs.short }}"
-          $notes = if (Test-Path JOHN-BUILD.txt) { 'JOHN-BUILD.txt' } else { $null }
-          if ($notes) {
-            gh release create $tag "${{ steps.zip.outputs.zip }}" --prerelease --target "${{ github.sha }}" --title "LightCraft met Lightroom-achtige tone sliders ($tag)" --notes-file $notes
-          } else {
-            gh release create $tag "${{ steps.zip.outputs.zip }}" --prerelease --target "${{ github.sha }}" --title "LightCraft ($tag)" --notes "Persoonlijke build"
-          }
-          if ($LASTEXITCODE -ne 0) { throw "release maken faalde" }
+          short=$(git rev-parse --short=8 HEAD)
+          tag="tone-v11-$short"
+          ls -l artifacts
+          (cd artifacts && sha256sum * > SHA256SUMS.txt)
+          notes=(--notes "Persoonlijke build")
+          [ -f JOHN-BUILD.txt ] && notes=(--notes-file JOHN-BUILD.txt)
+          gh release create "$tag" artifacts/* --prerelease --target "$GITHUB_SHA" \
+            --title "LightCraft met Lightroom-achtige sliders ($tag)" "${notes[@]}"

@@ -3,7 +3,7 @@
 > **Changes:** [revision history](#revision-history)
 
 Process V11 renders the colour mixer (Hue, Saturation and Luminance of the eight bands) the way Lightroom does, from
-measurements of Camera Raw's output. V1 to V8 are unchanged (`docs/process-versions.md`). The code is
+measurements of Camera Raw's output. V1 to V10 are unchanged (`docs/process-versions.md`). The code is
 `crates/pipeline/src/mixer_stage.rs`, its measured table `crates/pipeline/src/mixer_stage.bin`, and the GPU kernel's
 `mixer_stage` in `crates/gpu/src/wgsl/finish.wgsl`.
 
@@ -25,7 +25,7 @@ fine colour charts:
   highest measured level), while V8 scales the shift by chroma up to 0.12, so a colour of chroma 0.04 gets a third.
 - **The order differs.** Lightroom applies the mixer before Whites; V8 applies Whites in the tone map, before the mixer (below).
 
-## What V9 does
+## What V11 does
 
 After the tone map and V4's calibrated Contrast and Blacks, before the curve stage ([curve-stage.md](curve-stage.md)):
 
@@ -42,7 +42,7 @@ After the tone map and V4's calibrated Contrast and Blacks, before the curve sta
 
 V8's mixer in `ColorOps` is off under V11 (`ColorOps::mixer`), so the mixer applies once. With the mixer neutral the
 stage does not run. Saturation, Vibrance, Point Color and B&W keep their V8 operators, now after
-the curve stage (V1 to V8 run them before the output curves). Calibration stays scene linear, before the tone map. Colour Grading also runs after the curves, through its own measured V9 stage
+the curve stage (V1 to V10 run them before the output curves). Calibration stays scene linear, before the tone map. Colour Grading also runs after the curves, through its own measured V11 stage
 ([grading-stage.md](grading-stage.md)).
 
 ## How it was measured

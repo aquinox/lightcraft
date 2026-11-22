@@ -254,7 +254,7 @@ impl FinishParams {
         let FinishParamsInput { settings: s, frame, info, image_size: (w, h), px_per_long, air_pre, hs_range, space, draft } = input;
         let effects = s.section_enabled("effects");
         let (clar, tex, dehaze) = if effects {
-            ((s.effects.clarity / 100.0) as f32, (s.effects.texture / 100.0) as f32, (s.effects.dehaze / 100.0) as f32)
+            ((s.effects.clarity / 100.0) as f32, texture_slider(s.effects.texture, s.process.process()), (s.effects.dehaze / 100.0) as f32)
         } else {
             (0.0, 0.0, 0.0)
         };
@@ -291,7 +291,7 @@ impl FinishParams {
             proof: None,
             hl: (s.light.highlights / 100.0) as f32,
             hs_range: hs_range.filter(|_| crate::hs_range::wanted(s)).map(|r| r.shifted(ev)),
-            sh: (s.light.shadows / 100.0) as f32,
+            sh: tone_slider(s.light.shadows, SHADOWS_EASE, s.process.process()),
             clar,
             tex,
             dehaze,
@@ -327,6 +327,44 @@ impl FinishParams {
         self.out_trc = OutputTrc::Srgb;
         self.proof = proof.map(|pr| pr.params_display(d));
     }
+}
+
+/// How much a full global Shadows (−100 or +100) eases off from V10's strength under V11: it acts at
+/// `1 / (1 + SHADOWS_EASE)` of it (PR #3923).
+pub const SHADOWS_EASE: f64 = 1.33;
+
+/// A global Shadows slider (−100..100) as the strength the local tone operator takes (−1..1), with `ease` =
+/// [`SHADOWS_EASE`].
+///
+/// Up to V10 the strength is the slider's, linearly. From V11 it eases off as the amount grows, `a / (1 + ease·|a|)`
+/// for `a` = slider / 100: slope 1 at 0, so small amounts change least (Shadows +10 acts at 0.88 of V10's), and
+/// `1 / (1 + ease)` of V10's at ±100.
+/// Fitted to 56 Lightroom exports of real portrait edits (Canon raws, Shadows +40 to +100; PR #3923): the linear
+/// amount left their darkest tones about 6 L* above the exports; the amounts that cancel that are about 0.6 of the
+/// linear one at +52 and 0.43 at +100. Global Highlights is not eased here: from V11 it acts relative to the frame's
+/// tonal range ([`crate::hs_range`]). Masks keep their linear amounts.
+pub fn tone_slider(value: f64, ease: f64, process: Process) -> f32 {
+    if process < Process::V11 {
+        return (value / 100.0) as f32;
+    }
+    let a = (value / 100.0).clamp(-1.0, 1.0);
+    if !a.is_finite() {
+        return 0.0;
+    }
+    (a / (1.0 + ease * a.abs())) as f32
+}
+
+/// How much of V10's strength a global negative Texture keeps under V11 (PR #3923).
+pub const NEGATIVE_TEXTURE_V11: f64 = 0.67;
+
+/// The global Texture slider (−100..100) as the strength of the texture band (−1..1).
+///
+/// From V11 a negative amount smooths at [`NEGATIVE_TEXTURE_V11`] of V10's strength: at Texture −27, the linear
+/// amount left the 1–8 px detail of four full-size Lightroom exports of real Canon EOS R6 edits at 0.87–0.94 of
+/// the exports' and 0.67 of the amount brings it to 0.94–1.02. Positive amounts, masks and V1 to V10 are unchanged.
+pub fn texture_slider(value: f64, process: Process) -> f32 {
+    let t = value / 100.0;
+    if process >= Process::V11 && t < 0.0 { (t * NEGATIVE_TEXTURE_V11) as f32 } else { t as f32 }
 }
 
 /// The base tone map (scene → display luminance, with Contrast, Whites and Blacks) of `s`'s
@@ -922,6 +960,83 @@ fn enc(v: f32, dither: f32) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tone_sliders_ease_off_from_v11_only() {
+        for v in [-100.0, -52.0, 0.0, 13.0, 100.0, 250.0] {
+            for p in [Process::V1, Process::V8, Process::V10] {
+                assert_eq!(tone_slider(v, SHADOWS_EASE, p), (v / 100.0) as f32, "{p:?} keeps the linear amount");
+            }
+        }
+        let v11 = |v: f64, ease: f64| tone_slider(v, ease, Process::V11);
+        assert_eq!(v11(0.0, SHADOWS_EASE), 0.0);
+        assert!((v11(1.0, SHADOWS_EASE) - 0.01).abs() < 2e-4, "slope 1 at 0");
+        assert!((v11(10.0, SHADOWS_EASE) / 0.1 - 0.883).abs() < 0.005, "Shadows +10 eases off by about 12 %");
+        assert!((v11(100.0, SHADOWS_EASE) - 0.43).abs() < 0.005);
+        assert!((v11(52.0, SHADOWS_EASE) - 0.307).abs() < 0.005);
+        assert!((v11(-100.0, SHADOWS_EASE) + 0.43).abs() < 0.005, "symmetric");
+        assert_eq!(v11(250.0, SHADOWS_EASE), v11(100.0, SHADOWS_EASE), "clamped to the slider's range");
+        assert_eq!(v11(f64::NAN, SHADOWS_EASE), 0.0);
+        let mut last = -1.0;
+        for i in -100..=100 {
+            let y = v11(i as f64, SHADOWS_EASE);
+            assert!(y > last, "monotonic at {i}");
+            last = y;
+        }
+    }
+
+    #[test]
+    fn v11_eases_negative_texture_only() {
+        for v in [-100.0, -27.0, 0.0, 35.0] {
+            assert_eq!((texture_slider(v, Process::V8), texture_slider(v, Process::V10)), ((v / 100.0) as f32, (v / 100.0) as f32));
+        }
+        assert!((texture_slider(-27.0, Process::V11) - (-0.27 * NEGATIVE_TEXTURE_V11) as f32).abs() < 1e-7);
+        assert_eq!(texture_slider(35.0, Process::V11), 0.35);
+        assert_eq!(texture_slider(0.0, Process::V11), 0.0);
+    }
+
+    #[test]
+    fn v11_shadows_lift_less_than_v10() {
+        let src = lightcraft_raster::Rgb32f::from_fn(64, 8, |x, _| [0.002 * 1.12f32.powi(x as i32); 3]);
+        let mean = |p: Process, shadows: f64| {
+            let mut s = DevelopSettings { process: p.version(), ..Default::default() };
+            s.light.shadows = shadows;
+            let r = crate::render(&src, &SourceInfo::default(), &s, &crate::RenderRequest::fit(64, 8));
+            r.image.data.iter().take(24).map(|px| px[1] as f32).sum::<f32>() / 24.0
+        };
+        let (base, v10, v11) = (mean(Process::V11, 0.0), mean(Process::V10, 80.0), mean(Process::V11, 80.0));
+        assert!(v11 > base && v11 < v10, "Shadows still lifts the darks, less than V10: none {base}, V10 {v10}, V11 {v11}");
+    }
+
+    #[test]
+    fn a_render_takes_the_calibrated_shadows_strength() {
+        // the strengths that matched the Lightroom exports: Shadows +52 → ~0.31 (0.6 of the linear amount),
+        // +100 → 0.43; Highlights keeps the slider's amount (its range follows the frame), and V10 takes the
+        // slider's for both
+        let params = |p: Process, highlights: f64, shadows: f64| {
+            let mut s = DevelopSettings { process: p.version(), ..Default::default() };
+            (s.light.highlights, s.light.shadows) = (highlights, shadows);
+            let frame = crate::geometry::Frame::new(64, 8, &s, false);
+            let info = SourceInfo::default();
+            let fp = FinishParams::new(FinishParamsInput {
+                settings: &s,
+                frame: &frame,
+                info: &info,
+                image_size: (64, 8),
+                px_per_long: 64.0,
+                air_pre: 0.0,
+                hs_range: None,
+                space: OutputSpace::Srgb,
+                draft: false,
+            });
+            (fp.hl, fp.sh)
+        };
+        for (highlights, shadows, hl, sh) in [(0.0, 52.0, 0.0, 0.307), (-100.0, 100.0, -1.0, 0.429), (-48.0, 0.0, -0.48, 0.0)] {
+            let (got_hl, got_sh) = params(Process::V11, highlights, shadows);
+            assert!((got_hl - hl).abs() < 0.002 && (got_sh - sh).abs() < 0.002, "V11 {highlights}/{shadows}: {got_hl}, {got_sh}");
+            assert_eq!(params(Process::V10, highlights, shadows), ((highlights / 100.0) as f32, (shadows / 100.0) as f32));
+        }
+    }
 
     #[test]
     fn curve_luts_keep_1024_entries_when_composing_master_and_channel_curves() {

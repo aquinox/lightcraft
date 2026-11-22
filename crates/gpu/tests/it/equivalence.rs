@@ -86,7 +86,7 @@ fn warm_green_wb_zero_crossing_gpu_matches_cpu_on_v10() {
     let req = RenderRequest::fit(160, 120);
     // Test normal WB, positive s[2] > 0, and negative s[2] <= 0 across the zero crossing on Process::V10.
     for (temp, tint) in [(5500.0, 10.0), (2000.0, 0.0), (2000.0, 30.0), (3000.0, 100.0)] {
-        let mut s = DevelopSettings::default();
+        let mut s = DevelopSettings { process: Process::V10.version(), ..Default::default() };
         assert_eq!(s.process.process(), Process::V10);
         (s.wb.mode, s.wb.temp, s.wb.tint) = (WbMode::Custom, temp, tint);
         let cpu = render(&src, &info, &s, &req).image;

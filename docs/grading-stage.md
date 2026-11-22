@@ -3,7 +3,7 @@
 > **Changes:** [revision history](#revision-history)
 
 Process V11 renders Colour Grading (the shadows, midtones, highlights and global wheels with Blending and Balance) the
-way Lightroom does, from measurements of Camera Raw's output. V1 to V8 are unchanged (`docs/process-versions.md`).
+way Lightroom does, from measurements of Camera Raw's output. V1 to V10 are unchanged (`docs/process-versions.md`).
 The code is `crates/pipeline/src/grading_stage.rs`, its measured tables `crates/pipeline/src/grading_stage_tables.rs`,
 and the GPU kernel's `measured_grade` in `crates/gpu/src/wgsl/finish.wgsl`.
 
@@ -22,7 +22,7 @@ patches:
 - **Colours that already lean the tint's way get less of it.** A saturated colour in the tint's direction gets 62%
   of the shadows tint and about 90% of the highlights and global tints. V8 adds the full tint to every colour.
 
-## What V9 does
+## What V11 does
 
 At the end of the colour tools, where V8 grades (`ColorOps::grade`), in OkLab:
 

@@ -2,11 +2,17 @@
 
 ## Unreleased
 
+### Shadows eases off at large amounts, as in Lightroom (process V11)
+- Global Shadows now acts more gently the further you push it, as Lightroom's does: small amounts change little,
+  and +100 lifts the darkest tones about as much as Lightroom's +100 instead of washing them out. A negative Texture
+  smooths a little less. Masks keep their amounts. This is part of rendering process 11: photos you already edited
+  keep their look until you choose Photo ▸ Update to Current Process.
+
 ### Highlights behaves as in Lightroom (process V11)
 - Highlights now adapts to the photo, as Lightroom's does: on a photo with a wide range from its darkest to its
   brightest tones it recovers more and reaches further into the upper midtones, and on a flat photo it acts more
-  gently. A zoomed-in view, a preview and an export of the same photo get the same result. Shadows is unchanged.
-  This is part of rendering process 9: photos you already edited keep their look until you choose Photo ▸ Update to
+  gently. A zoomed-in view, a preview and an export of the same photo get the same result.
+  This is part of rendering process 11: photos you already edited keep their look until you choose Photo ▸ Update to
   Current Process. See [Highlights relative to the frame's range](hs-range.md).
 
 ### Adobe Standard profiles look as in Lightroom (process V11)
@@ -14,7 +20,7 @@
   Lightroom's base tone curve, applied the way Lightroom applies it, instead of the tone of the camera's JPEG. An
   unedited photo then matches Lightroom's in brightness, contrast and colour far more closely. Panasonic Lumix S9,
   S5, S5 II and S5 IIX raws (RW2) are measured and match closely; other cameras get the same curve without a per-camera exposure offset,
-  so they can come out a little lighter or darker than in Lightroom. This is part of rendering process 9: photos you
+  so they can come out a little lighter or darker than in Lightroom. This is part of rendering process 11: photos you
   already edited keep their look until you choose Photo ▸ Update to Current Process. See
   [Lightroom's default base curve](default-tone.md).
 
@@ -23,21 +29,21 @@
   shadows wheel spares the deepest blacks and reaches into the midtones, the global wheel acts most on the
   midtones), and give less tint to colours that already lean its way, so a warm grade no longer oversaturates warm
   colours. Blending, Balance and Luminance follow Lightroom's measured response too. This is part of rendering
-  process 9: photos you already edited keep their look until you choose Photo ▸ Update to Current Process. See
+  process 11: photos you already edited keep their look until you choose Photo ▸ Update to Current Process. See
   [Colour Grading](grading-stage.md).
 
 ### The colour mixer behaves as in Lightroom (process V11)
 - Each band of the colour mixer now covers the colours Lightroom's does (a red-orange such as skin answers to
   Orange, Blue reaches further towards aqua and purple), and Hue, Saturation and Luminance follow Lightroom's
   measured response, including how strongly they act at large amounts. The mixer works before the tone curves, as in
-  Lightroom. This is part of rendering process 9: photos you already edited keep their look until you choose
+  Lightroom. This is part of rendering process 11: photos you already edited keep their look until you choose
   Photo ▸ Update to Current Process. See [The colour mixer](mixer-stage.md).
 
 ### Whites and the tone curves behave as in Lightroom (process V11)
 - Whites now reaches into the upper midtones as Lightroom's does, and the Highlights, Lights, Darks and Shadows
   regions of the parametric curve are as broad as Lightroom's and add up the same way: both follow Lightroom's
   measured response. A contrast curve no longer turns orange towards red: the point curve keeps colours' hue, and
-  the red, green and blue curves act on their channel after it. This is rendering process 9: new photos (and Reset)
+  the red, green and blue curves act on their channel after it. This is rendering process 11: new photos (and Reset)
   get it, photos you already edited keep their look until you choose Photo ▸ Update to Current Process. See
   [Whites and the tone curves](curve-stage.md).
 

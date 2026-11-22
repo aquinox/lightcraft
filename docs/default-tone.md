@@ -3,7 +3,7 @@
 > **Changes:** [revision history](#revision-history)
 
 Process V11 gives a raw rendered through a camera profile without a tone curve of its own the base tone Lightroom
-gives it, from measurements of Camera Raw's output. V1 to V8 are unchanged (`docs/process-versions.md`). The code is
+gives it, from measurements of Camera Raw's output. V1 to V10 are unchanged (`docs/process-versions.md`). The code is
 `crates/pipeline/src/default_tone.rs`, its measured table `crates/pipeline/src/default_tone_table.rs`, and the GPU
 kernel's `rgb_tone` in `crates/gpu/src/wgsl/finish.wgsl`.
 
@@ -23,7 +23,7 @@ photo's own tone instead: the file's DNG tone curve, or else the curve fitted to
   predicts Camera Raw's output within 0.26 (OkLab × 100). Scaling by luminance misses by 5.31, and the curve on each
   channel by 0.86.
 
-## What V9 does
+## What V11 does
 
 For a raw whose profile has no tone curve (`SourceInfo::default_tone`, set by `files::load` when a camera profile
 without `ProfileToneCurve` is chosen):

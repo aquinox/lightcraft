@@ -2,7 +2,7 @@
 
 > **Changes:** [revision history](#revision-history)
 
-Process V11 makes Highlights act relative to the photo's own tonal range, as Lightroom's does. V1 to V8 are unchanged
+Process V11 makes Highlights act relative to the photo's own tonal range, as Lightroom's does. V1 to V10 are unchanged
 (`docs/process-versions.md`), and Shadows keeps V8's rule. The code is `crates/pipeline/src/hs_range.rs`, the range
 `local::frame_range`, and the GPU kernel's `hs_range_highlights` in `crates/gpu/src/wgsl/finish.wgsl`.
 
@@ -19,7 +19,7 @@ range, anchored on its darkest tones:
 
 Region size barely matters: the response follows the frame's range, not how much of the frame is bright.
 
-## What V9 does
+## What V11 does
 
 1. **The frame's range.** The base layer's 2nd and 99th percentile in log₂ luminance (`FrameRange`), plus exposure.
    It comes from a render of the whole output frame at a fixed 384 px on the long edge, whatever the output's size,

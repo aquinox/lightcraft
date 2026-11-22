@@ -1,0 +1,30 @@
+LightCraft met Lightroom-achtige sliders (persoonlijke build)
+=============================================================
+
+Dit is LightCraft 0.21.1 (ontwikkelversie van 21 november 2026) met daarin het werk uit vier
+nog niet samengevoegde pull requests van issue #523, samengevoegd in een eigen rendering process V11:
+
+- Whites en de Tone Curve, gemeten tegen Lightroom (PR #4076)
+- Highlights relatief aan het toonbereik van de foto, Color Grading, HSL-kleurmixer en
+  Lightroom's standaard basiscurve voor profielen zonder eigen curve (PR #4100)
+- Shadows dat bij grote waarden zachter afloopt; negatieve Texture iets milder (PR #3923)
+- Contrast en Blacks: de al afgestelde versie uit LightCraft zelf
+
+Het werk is van de makers van die PR's; deze build voegt het alleen samen.
+
+Starten
+-------
+Windows: pak de zip uit en start lightcraft.exe. Geen installatie nodig.
+Linux:   maak het .AppImage-bestand uitvoerbaar (rechtsklik > Eigenschappen > "Uitvoeren als
+         programma", of: chmod +x bestand.AppImage) en start het.
+
+Goed om te weten
+----------------
+- Nieuwe foto's (en Reset) krijgen process V11. Foto's die je al bewerkt had, houden hun oude
+  look tot je Foto > Update to Current Process kiest.
+- Dit is geen officiele release. Als je later terug gaat naar een officiele LightCraft, blijven je
+  slider-waarden bewaard, maar kan een foto er iets anders uitzien, omdat die versie V11 niet of
+  anders kent.
+- Vraagt LightCraft om te updaten naar een nieuwe officiele versie, dan vervang je deze build.
+  Wil je deze sliders houden, sla de update dan over.
+- Werk je met een bestaande bibliotheek, maak dan eerst een back-up van de bibliotheekmap.
