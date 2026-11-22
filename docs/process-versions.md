@@ -128,6 +128,7 @@ extra field and retain their existing cached renders. No cache-version bump is n
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-23 | minor | V11: Whites and the tone curves measured against Lightroom ([curve-stage.md](curve-stage.md), PR #4076); V1 to V10 keep theirs |
 | 2026-11-08 | minor | V8: the Highlights/Shadows base keeps the gaps in dark lettering (#3460) |
 | 2026-11-07 | minor | V7: film grain from crystal layers ([grain.md](grain.md)); V1 to V6 keep their value noise |
 | 2026-11-05 | minor | V5: a raw's tone curve rolls off into white in stops, so raising Exposure keeps recorded highlights (#1632) |

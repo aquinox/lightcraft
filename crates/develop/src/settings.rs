@@ -106,13 +106,21 @@ pub enum Process {
     /// illuminant's Bradford blue cone response is `<= 0.0`, `craft-libs#587`).
     /// `ProcessVersion(9)` is reserved for `HealMethod::Pinned` (`#4069`).
     V10,
+    /// V10, with the Light sliders measured against Lightroom (issue #523), combined in one process
+    /// as the per-slider work proposes: Whites and the parametric curve from measured tables, and the
+    /// tone curves applied as Lightroom does (Whites, the parametric and point curve hue-preserving in
+    /// linear ProPhoto RGB, then the red, green and blue curves per channel, before the colour stage;
+    /// `lightcraft_pipeline::curve_stage`, PR #4076); Highlights relative to the frame's tonal range
+    /// (`lightcraft_pipeline::hs_range`, PR #4100); global Highlights and Shadows eased off at large
+    /// amounts (PR #3923). Contrast and Blacks keep V10's calibrated operators.
+    V11,
 }
 
 impl Process {
     /// Every process, oldest first (`ProcessVersion(9)` is reserved for `#4069`).
-    pub const ALL: [Process; 9] =
-        [Process::V1, Process::V2, Process::V3, Process::V4, Process::V5, Process::V6, Process::V7, Process::V8, Process::V10];
-    pub const LATEST: Process = Process::V10;
+    pub const ALL: [Process; 10] =
+        [Process::V1, Process::V2, Process::V3, Process::V4, Process::V5, Process::V6, Process::V7, Process::V8, Process::V10, Process::V11];
+    pub const LATEST: Process = Process::V11;
 
     pub const fn version(self) -> ProcessVersion {
         match self {
@@ -125,6 +133,7 @@ impl Process {
             Process::V7 => ProcessVersion(7),
             Process::V8 => ProcessVersion(8),
             Process::V10 => ProcessVersion(10),
+            Process::V11 => ProcessVersion(11),
         }
     }
 }
