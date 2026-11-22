@@ -1,8 +1,8 @@
-# Whites and the tone curves, measured (process V9)
+# Whites and the tone curves, measured (process V11)
 
 > **Changes:** [revision history](#revision-history)
 
-Process V9 renders Whites, the parametric curve and the point curves the way Lightroom does, from measurements of
+Process V11 renders Whites, the parametric curve and the point curves the way Lightroom does, from measurements of
 Camera Raw's output. V1 to V8 are unchanged (`docs/process-versions.md`). The code is
 `crates/pipeline/src/curve_stage.rs`, its measured tables `crates/pipeline/src/curve_stage_tables.rs`, and the GPU
 kernel's `curve_stage` in `crates/gpu/src/wgsl/finish.wgsl`.
@@ -22,7 +22,8 @@ display-encoded output. Measured against Camera Raw, this goes wrong in three wa
 
 ## What V9 does
 
-After the tone map and V4's calibrated Contrast and Blacks, before the colour stage:
+After the tone map, V4's calibrated Contrast and Blacks and V11's colour mixer ([mixer-stage.md](mixer-stage.md)),
+before the colour stage:
 
 1. Convert linear Rec.2020 to linear ProPhoto RGB (D50, Bradford) and encode with the sRGB curve, as the V4
    operators do (`light_v3::prophoto_matrices`).
@@ -38,14 +39,14 @@ After the tone map and V4's calibrated Contrast and Blacks, before the colour st
    curves' linear luminance, so the tone change stays.
 6. Values above SDR white (an HDR render) continue with slope 1.
 
-The tone map no longer applies Whites under V9 (`finish::base_tone`), and the V8 output-curve tables are not built
+The tone map no longer applies Whites under V11 (`finish::base_tone`), and the V8 output-curve tables are not built
 (`FinishParams::curves` is `None`). With Whites, the parametric curve and the point curves all neutral, the curve
 stage does not run.
 
 ## The Edit panel's graph
 
 The parametric graph draws the curve the photo renders, from `curve_stage::ParametricGraph`: the measured regions
-under V9 at the default splits, else the analytic model. Dragging the line moves the region under the pointer by
+under V11 at the default splits, else the analytic model. Dragging the line moves the region under the pointer by
 the amount that puts the drawn curve where the pointer is. The measured tables are not linear in the amount, so the
 amount is searched for, on the side of the starting value the drag moves to, on the curve as drawn (kept monotone, so
 where opposite regions fold it back the line is held flat by the peak to its left). A level out of the region's reach
@@ -79,5 +80,5 @@ predicted from the grey-step curves under the hue-preserving rule in step 3. The
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-11-10 | minor | Process V9: measured Whites and parametric curve, hue-preserving master curve |
-| 2026-11-11 | minor | The Edit panel's parametric graph draws and drags the measured regions under V9 |
+| 2026-11-10 | minor | Process V11: measured Whites and parametric curve, hue-preserving master curve |
+| 2026-11-11 | minor | The Edit panel's parametric graph draws and drags the measured regions under V11 |
