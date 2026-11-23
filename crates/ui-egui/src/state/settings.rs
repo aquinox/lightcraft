@@ -101,6 +101,9 @@ impl LightTheme {
     }
 }
 
+/// The default Light slider range (`AppSettings::light_slider_range`: ±50, ±100 or ±200).
+pub const LIGHT_SLIDER_RANGE_DEFAULT: u32 = 100;
+
 /// App-level preferences (Settings dialog). They belong to the app, not a library, and are
 /// saved with the UI state in the app's config folder (`ui.json`, key `settings`); library
 /// preferences (import defaults, XMP, cache size) live in the library's `prefs.json`.
@@ -160,6 +163,10 @@ pub struct AppSettings {
     /// values the selected photos share and marks each field where they differ (Selected Photos),
     /// false shows the active photo's values (Target Photo) (`view.infoSelectedPhotos`).
     pub info_selected_photos: bool,
+    /// Settings ▸ Editing ▸ Light slider range: how far the edit panel's Highlights, Shadows, Whites and Blacks
+    /// tracks reach, ±50 (finer), ±100 or ±200 (this build's extended range). Only the track: a photo stores the
+    /// real amount, so the setting never changes how a photo renders (`panels::edit::sliders::ranged`).
+    pub light_slider_range: u32,
     /// Filmstrip: file names above the thumbnails.
     pub film_names: bool,
     /// Filmstrip: rating / flag / edited badges on the thumbnails.
@@ -243,6 +250,7 @@ impl Default for AppSettings {
             memory_mb: 0,
             hot_pixel_limit: HOT_PIXEL_LIMIT_DEFAULT,
             info_selected_photos: true,
+            light_slider_range: LIGHT_SLIDER_RANGE_DEFAULT,
             film_names: true,
             film_badges: true,
             grid_badges: GridBadges::Auto,

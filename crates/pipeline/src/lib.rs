@@ -982,6 +982,8 @@ mod tests_legacy;
 #[cfg(test)]
 mod tests_light;
 #[cfg(test)]
+mod tests_light_range;
+#[cfg(test)]
 mod tests_local;
 #[cfg(test)]
 mod tests_mask_geometry;

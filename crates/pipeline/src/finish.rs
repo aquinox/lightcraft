@@ -291,7 +291,7 @@ impl FinishParams {
             out_luma: space.luma(),
             out_trc: space.trc(),
             proof: None,
-            hl: (s.light.highlights / 100.0) as f32,
+            hl: (light_slider(s.light.highlights, s.process.process()) / 100.0) as f32,
             hs_range: hs_range.filter(|_| crate::hs_range::wanted(s)).map(|r| r.shifted(ev)),
             sh: tone_slider(s.light.shadows, SHADOWS_EASE, s.process.process()),
             clar,
@@ -345,15 +345,33 @@ pub const SHADOWS_EASE: f64 = 1.33;
 /// amount left their darkest tones about 6 L* above the exports; the amounts that cancel that are about 0.6 of the
 /// linear one at +52 and 0.43 at +100. Global Highlights is not eased here: from V11 it acts relative to the frame's
 /// tonal range ([`crate::hs_range`]). Masks keep their linear amounts.
+///
+/// Past ±100 (V11's extended range, [`light_slider`]) the amount stacks on the full ±100 strength: each further
+/// step adds that strength's share, `a / (1 + ease)`, so ±200 acts at twice the strength of ±100, continuous at ±100.
 pub fn tone_slider(value: f64, ease: f64, process: Process) -> f32 {
+    let a = light_slider(value, process) / 100.0;
     if process < Process::V11 {
-        return (value / 100.0) as f32;
+        return a as f32;
     }
-    let a = (value / 100.0).clamp(-1.0, 1.0);
-    if !a.is_finite() {
-        return 0.0;
+    if a.abs() > 1.0 {
+        return (a / (1.0 + ease)) as f32;
     }
     (a / (1.0 + ease * a.abs())) as f32
+}
+
+/// The largest Highlights, Shadows, Whites or Blacks amount `process` renders: ±200 from V11, where an amount past
+/// ±100 stacks on the full ±100 effect (each slider in its own way: Highlights and Shadows scale on, Whites applies
+/// its ±100 curve and then the rest, Blacks its ±100 operator and then the rest), else ±100, the range those
+/// processes had (their photos keep rendering as they did; a value past it, set in this build, renders as ±100).
+pub fn light_limit(process: Process) -> f64 {
+    if process >= Process::V11 { 200.0 } else { 100.0 }
+}
+
+/// A Highlights, Shadows, Whites or Blacks amount clamped to what `process` renders ([`light_limit`]); 0 when not
+/// finite.
+pub fn light_slider(value: f64, process: Process) -> f64 {
+    let limit = light_limit(process);
+    if value.is_finite() { value.clamp(-limit, limit) } else { 0.0 }
 }
 
 /// How much of V10's strength a global negative Texture keeps under V11 (PR #3923).
@@ -380,33 +398,37 @@ pub fn texture_slider(value: f64, process: Process) -> f32 {
 /// lifts its highlights past white ([`ToneMap::camera_hdr`]), so it matches the SDR render below them.
 pub fn base_tone(s: &DevelopSettings, info: &SourceInfo, peak: f32) -> ToneMap {
     let l = &s.light;
-    match s.process.process() {
+    // Whites and Blacks as the process renders them: at most ±100 before V11 (`light_slider`); from V11 Whites is
+    // the curve stage's, and Blacks past ±100 extends the tone map's toe for sources without the calibrated operators
+    let p = s.process.process();
+    let (whites, blacks) = (light_slider(l.whites, p), light_slider(l.blacks, p));
+    match p {
         // V2 changes the Highlights/Shadows base (`local::tone_base`), not the tone map
         Process::V1 | Process::V2 | Process::V3 => match info.camera_tone.as_ref().filter(|_| info.raw) {
-            Some(curve) => ToneMap::camera_hdr(curve, l.contrast, l.whites, l.blacks, peak),
-            None if info.raw => ToneMap::hdr(l.contrast, l.whites, l.blacks, peak),
-            None => ToneMap::display_hdr(l.contrast, l.whites, l.blacks, peak),
+            Some(curve) => ToneMap::camera_hdr(curve, l.contrast, whites, blacks, peak),
+            None if info.raw => ToneMap::hdr(l.contrast, whites, blacks, peak),
+            None => ToneMap::display_hdr(l.contrast, whites, blacks, peak),
         },
         // Keep V2 Whites in the camera curve; calibrated Contrast and Blacks follow it.
         Process::V4 => match info.camera_tone.as_ref().filter(|_| info.raw) {
-            Some(curve) => ToneMap::camera_hdr(curve, 0.0, l.whites, 0.0, peak),
-            None if info.raw => ToneMap::hdr(l.contrast, l.whites, l.blacks, peak),
-            None => ToneMap::display_hdr(l.contrast, l.whites, l.blacks, peak),
+            Some(curve) => ToneMap::camera_hdr(curve, 0.0, whites, 0.0, peak),
+            None if info.raw => ToneMap::hdr(l.contrast, whites, blacks, peak),
+            None => ToneMap::display_hdr(l.contrast, whites, blacks, peak),
         },
         // V4, with a raw's tone curve rolling off into white in stops: a camera curve past its last
         // knot, the generic curve from half a stop below its white point instead of clipping (issue #1632)
         Process::V5 | Process::V6 | Process::V7 | Process::V8 | Process::V10 => match info.camera_tone.as_ref().filter(|_| info.raw) {
-            Some(curve) => ToneMap::camera_rolloff_hdr(curve, 0.0, l.whites, 0.0, peak),
-            None if info.raw => ToneMap::rolloff_hdr(l.contrast, l.whites, l.blacks, peak),
-            None => ToneMap::display_hdr(l.contrast, l.whites, l.blacks, peak),
+            Some(curve) => ToneMap::camera_rolloff_hdr(curve, 0.0, whites, 0.0, peak),
+            None if info.raw => ToneMap::rolloff_hdr(l.contrast, whites, blacks, peak),
+            None => ToneMap::display_hdr(l.contrast, whites, blacks, peak),
         },
         // V10, with Whites moved out of the tone map: the curve stage applies Whites as measured against
         // Lightroom (`crate::curve_stage`). A raw whose profile has no tone curve gets Lightroom's default
         // curve, measured (`crate::default_tone`), instead of its own.
         Process::V11 => match crate::default_tone::for_source(s, info).or(info.camera_tone.filter(|_| info.raw)) {
             Some(curve) => ToneMap::camera_rolloff_hdr(&curve, 0.0, 0.0, 0.0, peak),
-            None if info.raw => ToneMap::rolloff_hdr(l.contrast, 0.0, l.blacks, peak),
-            None => ToneMap::display_hdr(l.contrast, 0.0, l.blacks, peak),
+            None if info.raw => ToneMap::rolloff_hdr(l.contrast, 0.0, blacks, peak),
+            None => ToneMap::display_hdr(l.contrast, 0.0, blacks, peak),
         },
     }
 }
@@ -965,10 +987,13 @@ mod tests {
 
     #[test]
     fn tone_sliders_ease_off_from_v11_only() {
-        for v in [-100.0, -52.0, 0.0, 13.0, 100.0, 250.0] {
+        for v in [-100.0, -52.0, 0.0, 13.0, 100.0] {
             for p in [Process::V1, Process::V8, Process::V10] {
                 assert_eq!(tone_slider(v, SHADOWS_EASE, p), (v / 100.0) as f32, "{p:?} keeps the linear amount");
             }
+        }
+        for p in [Process::V1, Process::V10] {
+            assert_eq!(tone_slider(150.0, SHADOWS_EASE, p), 1.0, "{p:?} renders at most its ±100 range");
         }
         let v11 = |v: f64, ease: f64| tone_slider(v, ease, Process::V11);
         assert_eq!(v11(0.0, SHADOWS_EASE), 0.0);
@@ -977,10 +1002,14 @@ mod tests {
         assert!((v11(100.0, SHADOWS_EASE) - 0.43).abs() < 0.005);
         assert!((v11(52.0, SHADOWS_EASE) - 0.307).abs() < 0.005);
         assert!((v11(-100.0, SHADOWS_EASE) + 0.43).abs() < 0.005, "symmetric");
-        assert_eq!(v11(250.0, SHADOWS_EASE), v11(100.0, SHADOWS_EASE), "clamped to the slider's range");
+        assert_eq!(v11(250.0, SHADOWS_EASE), v11(200.0, SHADOWS_EASE), "clamped to the slider's range");
         assert_eq!(v11(f64::NAN, SHADOWS_EASE), 0.0);
-        let mut last = -1.0;
-        for i in -100..=100 {
+        // past ±100 the amount stacks on the full ±100 strength: continuous, and twice that at ±200
+        assert!((v11(100.0001, SHADOWS_EASE) - v11(100.0, SHADOWS_EASE)).abs() < 1e-5);
+        assert!((v11(200.0, SHADOWS_EASE) - 2.0 * v11(100.0, SHADOWS_EASE)).abs() < 1e-6);
+        assert!((v11(-200.0, SHADOWS_EASE) + 2.0 * v11(100.0, SHADOWS_EASE)).abs() < 1e-6);
+        let mut last = -2.0;
+        for i in -200..=200 {
             let y = v11(i as f64, SHADOWS_EASE);
             assert!(y > last, "monotonic at {i}");
             last = y;

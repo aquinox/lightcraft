@@ -158,6 +158,10 @@ pub fn interact(app: &mut LightcraftApp, ui: &egui::Ui, resp: &Response, plot: R
     if let Some(Gesture::HistogramDrag { control, value }) = app.gesture.clone()
         && let Some(spec) = controls::find(control)
     {
+        // the Light sliders' track (Settings ▸ Light slider range, at most what the photo's process renders), as
+        // the panel's sliders take it: crossing the plot sweeps that track
+        let process = app.session.develop_of(id).map_or(lightcraft_develop::Process::LATEST, |d| d.process.process());
+        let spec = &crate::panels::edit::sliders::ranged(spec, app.ui.settings.light_slider_range, process);
         if resp.dragged() || resp.drag_stopped() {
             // The frame a drag is first reported, take the whole travel from the press: egui only
             // starts reporting a drag once the pointer has left its click threshold, and those first
@@ -247,7 +251,9 @@ mod tests {
             let spec = spec_of(zone.control);
             assert_eq!(spec.section, lightcraft_develop::Section::Light, "{}", spec.id);
             assert_eq!(spec.default, 0.0, "{}", spec.id);
-            let (min, max) = if spec.id == "light.exposure" { (-5.0, 5.0) } else { (-100.0, 100.0) };
+            // the four tone sliders store −200..200 (this build's extended range); their track, and so a drag
+            // across the plot, follows Settings ▸ Light slider range (`sliders::ranged`)
+            let (min, max) = if spec.id == "light.exposure" { (-5.0, 5.0) } else { (-200.0, 200.0) };
             assert_eq!((spec.min, spec.max), (min, max), "{}", spec.id);
         }
     }
@@ -298,7 +304,8 @@ mod tests {
     #[test]
     fn a_drag_sweeps_the_control_and_clamps_at_its_ends() {
         let exposure = spec_of("light.exposure");
-        let blacks = spec_of("light.blacks");
+        // Blacks as the drag takes it: its track at the default ±100 range (`sliders::ranged`)
+        let blacks = &crate::panels::edit::sliders::ranged(spec_of("light.blacks"), 100, lightcraft_develop::Process::V11);
         assert!((dragged(exposure, 0.0, 20.0, 200.0, false) - 1.0).abs() < 1e-9, "a tenth of the plot is a tenth of ±5 EV");
         assert!((dragged(blacks, 0.0, 20.0, 200.0, false) - 20.0).abs() < 1e-9);
         assert!((dragged(blacks, 0.0, 200.0, 200.0, false) - 100.0).abs() < 1e-9);
@@ -325,10 +332,11 @@ mod tests {
     /// range; a value that isn't a number gives the default rather than a NaN.
     #[test]
     fn a_dispatched_value_lands_on_the_controls_steps() {
-        let blacks = spec_of("light.blacks");
+        // Blacks as the drag takes it: its track at the default ±100 range, in tenths (this build's finer steps)
+        let blacks = &crate::panels::edit::sliders::ranged(spec_of("light.blacks"), 100, lightcraft_develop::Process::V11);
         let exposure = spec_of("light.exposure");
-        assert_eq!(quantized(blacks, 20.4), 20.0);
-        assert_eq!(quantized(blacks, 20.6), 21.0);
+        assert!((quantized(blacks, 20.44) - 20.4).abs() < 1e-9);
+        assert!((quantized(blacks, 20.46) - 20.5).abs() < 1e-9);
         assert_eq!(quantized(blacks, 1e9), 100.0);
         assert_eq!(quantized(blacks, -1e9), -100.0);
         assert_eq!(quantized(blacks, f64::NAN), 0.0);

@@ -121,8 +121,8 @@ const FIELDS: &[(&str, usize)] = &[
     // operators (0 = none), each one's mode (`light_v3::Mode::code`) and mix weight, and the offset
     // of their tables in `aux` (LIGHT_N entries each, in order)
     ("LIGHT_OPS", 1),
-    ("LIGHT_MODE", 2),
-    ("LIGHT_W", 2),
+    ("LIGHT_MODE", 3),
+    ("LIGHT_W", 3),
     ("LIGHT_OFF", 1),
     // the render's peak over SDR white (`FinishParams::peak`; above 1: an HDR render)
     ("PEAK", 1),
@@ -249,7 +249,7 @@ pub fn finish_block(fp: &FinishParams, masks: &[[f32; MASK_TERMS]], present: &Pr
     }
     let light_off = aux.len();
     let light = fp.light.as_ref().map_or(&[][..], |l| &l.ops[..]);
-    let light = &light[..light.len().min(2)];
+    let light = &light[..light.len().min(lightcraft_pipeline::light_v3::MAX_OPS)];
     for op in light {
         aux.extend_from_slice(&op.lut[..]);
     }

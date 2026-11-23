@@ -23,7 +23,7 @@ mod hdr_flow;
 mod histogram;
 mod lens_blur;
 mod mixer;
-mod sliders;
+pub(crate) mod sliders;
 
 use curve::curve_editor;
 use grading::grading;

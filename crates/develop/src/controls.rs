@@ -79,6 +79,9 @@ pub enum Track {
     Rainbow,
 }
 
+/// The Light sliders that store tenths (−200..200): a whole amount shows without the decimal.
+const TENTHS: [&str; 4] = ["light.highlights", "light.shadows", "light.whites", "light.blacks"];
+
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct ControlSpec {
     pub id: &'static str,
@@ -98,7 +101,9 @@ impl ControlSpec {
         if v.is_finite() { v.clamp(self.min, self.max) } else { self.default }
     }
     pub fn format(&self, v: f64) -> String {
-        let s = format!("{:.*}", self.decimals as usize, v);
+        // the four tone sliders store tenths (this build's finer steps) but show a whole amount as before
+        let decimals = if TENTHS.contains(&self.id) && (v * 10.0).round() % 10.0 == 0.0 { 0 } else { self.decimals as usize };
+        let s = format!("{:.*}", decimals, v);
         if v.is_finite() && !s.bytes().any(|b| matches!(b, b'1'..=b'9')) {
             // Rounds to zero: no sign.
             return s.trim_start_matches('-').to_string();
@@ -179,10 +184,13 @@ controls! {
     "wb.tint" => wb.tint, "Tint", Color, -150, 150, 0, 1, 0, Tint;
     "light.exposure" => light.exposure, "Exposure", Light, -5, 5, 0, 0.01, 2, Centered;
     "light.contrast" => light.contrast, "Contrast", Light, -100, 100, 0, 1, 0, Centered;
-    "light.highlights" => light.highlights, "Highlights", Light, -100, 100, 0, 1, 0, Centered;
-    "light.shadows" => light.shadows, "Shadows", Light, -100, 100, 0, 1, 0, Centered;
-    "light.whites" => light.whites, "Whites", Light, -100, 100, 0, 1, 0, Centered;
-    "light.blacks" => light.blacks, "Blacks", Light, -100, 100, 0, 1, 0, Centered;
+    // Highlights, Shadows, Whites and Blacks store −200..200 in tenths: past ±100 an amount stacks on the full
+    // ±100 effect from process V11 on (earlier processes render at most ±100); the edit panel's track
+    // follows Settings ▸ Light slider range (±50, ±100 or ±200)
+    "light.highlights" => light.highlights, "Highlights", Light, -200, 200, 0, 0.1, 1, Centered;
+    "light.shadows" => light.shadows, "Shadows", Light, -200, 200, 0, 0.1, 1, Centered;
+    "light.whites" => light.whites, "Whites", Light, -200, 200, 0, 0.1, 1, Centered;
+    "light.blacks" => light.blacks, "Blacks", Light, -200, 200, 0, 0.1, 1, Centered;
     "hdr.maxEv" => hdr.max_ev, "HDR Headroom", Light, 0, 5, 3, 0.1, 1, Plain;
     "hdr.sdrBrightness" => hdr.sdr_brightness, "SDR Brightness", Light, -100, 100, 0, 1, 0, Centered;
     "hdr.sdrContrast" => hdr.sdr_contrast, "SDR Contrast", Light, -100, 100, 0, 1, 0, Centered;
@@ -628,5 +636,21 @@ mod tests {
         // a Kelvin range that doesn't contain the centre falls back to linear rather than dividing by zero
         let narrow = ControlSpec { min: 7000.0, max: 9000.0, ..*temp };
         assert_eq!((narrow.position(8000.0), narrow.value_at(0.5)), (0.5, 8000.0));
+    }
+}
+
+#[cfg(test)]
+mod tenths_tests {
+    use super::find;
+
+    #[test]
+    fn the_tone_sliders_show_whole_amounts_without_the_decimal() {
+        let shadows = find("light.shadows").expect("control");
+        assert_eq!(shadows.format(25.0), "+25");
+        assert_eq!(shadows.format(-150.0), "-150");
+        assert_eq!(shadows.format(25.5), "+25.5");
+        assert_eq!(shadows.format(0.0), "0");
+        // other controls keep their decimals
+        assert_eq!(find("geometry.rotate").expect("control").format(2.0), "+2.0");
     }
 }

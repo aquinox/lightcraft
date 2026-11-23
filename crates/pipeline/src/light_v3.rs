@@ -278,6 +278,21 @@ pub struct LightOps {
 /// The fits of Contrast and Blacks, in the order they apply.
 pub const FITS: [&Fit; 2] = [&fitted::CONTRAST, &fitted::BLACKS];
 
+/// The most operators a render applies: Contrast, Blacks, and from V11 a second Blacks for an amount past ±100
+/// (the GPU kernel reads this many: `LIGHT_MODE`, `LIGHT_W` in `crates/gpu/src/params.rs`).
+pub const MAX_OPS: usize = 3;
+
+/// A Blacks amount as the operators that apply it, in order: up to ±100 one operator; from V11 an amount past ±100
+/// (up to ±200) is the full ±100 operator and then the rest, so it stacks on the ±100 effect.
+pub fn blacks_amounts(blacks: f64, process: Process) -> Vec<f64> {
+    let b = crate::finish::light_slider(blacks, process);
+    if b.abs() <= 100.0 {
+        return vec![b];
+    }
+    let full = 100.0f64.copysign(b);
+    vec![full, b - full]
+}
+
 /// Whether `s` renders `info` with the V4 operators: process V4 or later and a raw with its camera's tone
 /// curve (other sources keep the tone map's own Contrast and Blacks).
 pub fn applies(s: &DevelopSettings, info: &SourceInfo) -> bool {
@@ -298,7 +313,11 @@ impl LightOps {
             return None;
         }
         let l = &s.light;
-        let ops: Vec<Operator> = FITS.iter().zip([l.contrast, l.blacks]).filter_map(|(f, a)| Operator::new(f, a)).collect();
+        let blacks = blacks_amounts(l.blacks, s.process.process());
+        let ops: Vec<Operator> = std::iter::once((&fitted::CONTRAST, l.contrast))
+            .chain(blacks.into_iter().map(|a| (&fitted::BLACKS, a)))
+            .filter_map(|(f, a)| Operator::new(f, a))
+            .collect();
         if ops.is_empty() {
             return None;
         }

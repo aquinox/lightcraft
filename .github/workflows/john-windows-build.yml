@@ -60,7 +60,8 @@ jobs:
         shell: pwsh
         run: |
           $short = (git rev-parse --short=8 HEAD)
-          $name = "lightcraft-tone-v11-$short-windows-x64-portable"
+          $variant = $env:GITHUB_REF_NAME -replace '^john-', ''
+          $name = "lightcraft-$variant-$short-windows-x64-portable"
           $stage = Join-Path $env:RUNNER_TEMP $name
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           $bin = 'target\x86_64-pc-windows-msvc\release'
@@ -117,12 +118,13 @@ jobs:
         id: files
         run: |
           short=$(git rev-parse --short=8 HEAD)
+          variant="${GITHUB_REF_NAME#john-}"
           out="$RUNNER_TEMP/out"
           mkdir -p "$out"
           for f in "$RUNNER_TEMP"/dist/*.AppImage "$RUNNER_TEMP"/dist/*.tar.gz; do
             [ -e "$f" ] || continue
             ext="${f##*.}"; [ "$ext" = gz ] && ext=tar.gz
-            cp "$f" "$out/lightcraft-tone-v11-$short-linux-x86_64.$ext"
+            cp "$f" "$out/lightcraft-$variant-$short-linux-x86_64.$ext"
           done
           ls -l "$out"
           echo "out=$out" >> "$GITHUB_OUTPUT"
@@ -150,10 +152,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           short=$(git rev-parse --short=8 HEAD)
-          tag="tone-v11-$short"
+          tag="${GITHUB_REF_NAME#john-}-$short"
           ls -l artifacts
           (cd artifacts && sha256sum * > SHA256SUMS.txt)
           notes=(--notes "Persoonlijke build")
           [ -f JOHN-BUILD.txt ] && notes=(--notes-file JOHN-BUILD.txt)
           gh release create "$tag" artifacts/* --prerelease --target "$GITHUB_SHA" \
-            --title "LightCraft 0.21.1, onofficiële build met process V11 ($tag)" "${notes[@]}"
+            --title "LightCraft 0.21.1, onofficiële build met process V11, sliders tot ±200 ($tag)" "${notes[@]}"

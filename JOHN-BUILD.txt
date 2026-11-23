@@ -1,5 +1,5 @@
-LightCraft 0.21.1, onofficiële build met process V11
-====================================================
+LightCraft 0.21.1, onofficiële build met process V11, sliders tot ±200
+======================================================================
 
 Onofficiële build, gebaseerd op LightCraft van het ArtCraft-team (https://github.com/storytold/lightcraft).
 Geen officiële release en niet gemaakt of ondersteund door het ArtCraft-team: meld problemen hier,
@@ -17,6 +17,17 @@ Camera Raw (merken van Adobe; geen code of bestanden van Adobe):
 - Contrast en Blacks: de al afgestelde versie uit LightCraft zelf
 
 Het werk is van de makers van die PR's; deze build voegt het alleen samen.
+
+Extra in deze variant: Highlights, Shadows, Whites en Blacks tot ±200, in stapjes van 0,1
+-----------------------------------------------------------------------------------------
+- Instelling: Settings > General > Editing > Light slider range:
+  ±50 (fijner: elke stap op de slider is half zo groot), ±100 (standaard) of ±200 (twee keer zo ver).
+- De foto bewaart de echte waarde (bijvoorbeeld Highlights -150). De instelling bepaalt alleen hoe
+  ver de slider reikt, dus hij verandert nooit hoe een foto eruitziet.
+- Voorbij ±100 komt het effect bovenop het volle ±100-effect: -150 is "-100, plus nog -50".
+  Dat geldt voor foto's op process V11; oudere processen blijven op ±100.
+- Waarden typen kan in tienden (-37,5); Shift-slepen stelt fijn bij.
+- Bewaarde waarden boven 100 kent de gewone LightCraft niet: daar tellen ze als ±100.
 
 Starten
 -------

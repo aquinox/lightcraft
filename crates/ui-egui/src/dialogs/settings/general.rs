@@ -69,6 +69,20 @@ pub(super) fn general_tab(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens
             &mut app.ui.settings.startup_view,
         );
     });
+    heading(ui, t, crate::i18n::tr("Editing"));
+    row(ui, t, crate::i18n::tr("Light slider range"), |ui| {
+        choices(
+            ui,
+            "settingsLightSliderRange",
+            &[(50u32, "±50 (finer)"), (100, "±100 (standard)"), (200, "±200 (extended)")],
+            &mut app.ui.settings.light_slider_range,
+        );
+    });
+    hint(
+        ui,
+        t,
+        "How far the Highlights, Shadows, Whites and Blacks sliders reach. ±50 makes each step finer, ±200 lets them go twice as far (past ±100 the effect stacks on the full ±100 effect; photos on rendering process 11). A photo keeps the value you set, so this never changes how a photo looks.",
+    );
     heading(ui, t, crate::i18n::tr("Culling"));
     check(ui, "settings.autoAdvance", &mut app.ui.auto_advance, "Auto Advance: move to the next photo after rating or flagging");
     check(ui, "settings.confirmDelete", &mut app.ui.settings.confirm_delete, "Confirm before moving photos to Recently Deleted");

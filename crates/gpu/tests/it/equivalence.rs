@@ -823,6 +823,20 @@ fn light_v3_operators_match() {
             }
         }
     }
+    // V11's extended range: Blacks past ±100 is a second operator (three with Contrast), Whites past ±100 a
+    // composed curve-stage table, Highlights and Shadows past ±100 scale on
+    for v in [-200.0, -150.0, 150.0, 200.0] {
+        let mut s = DevelopSettings { process: Process::V11.version(), ..Default::default() };
+        s.light.contrast = 20.0;
+        for id in ["light.highlights", "light.shadows", "light.whites", "light.blacks"] {
+            lightcraft_develop::controls::set(&mut s, id, v);
+        }
+        check(&format!("V11 Light sliders {v}"), &src, &info, &s, &req);
+        let mut b = DevelopSettings { process: Process::V11.version(), ..Default::default() };
+        b.light.contrast = 20.0;
+        b.light.blacks = v;
+        check(&format!("V11 Blacks {v}"), &src, &info, &b, &req);
+    }
     let mut s = DevelopSettings { process: Process::V4.version(), ..Default::default() };
     typical(&mut s);
     s.light.contrast = 35.0;

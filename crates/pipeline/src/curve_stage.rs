@@ -220,12 +220,25 @@ impl ParametricGraph {
 
 /// The measured Whites curve at `amount`, or `None` at 0.
 fn whites(amount: f64) -> Option<Lut1> {
+    let amount = crate::finish::light_slider(amount, Process::V11);
     if amount == 0.0 {
         return None;
     }
+    // past ±100 (V11's extended range): the measured ±100 curve, then the rest on top of it, so the amount
+    // stacks on the full ±100 effect
+    if amount.abs() > 100.0 {
+        let full = 100.0f64.copysign(amount);
+        let (first, rest) = (whites_measured(full), whites_measured(amount - full));
+        return Some(rest.compose_len(&first, N));
+    }
+    Some(whites_measured(amount))
+}
+
+/// Whites at `amount` (−100..100) from the measured tables.
+fn whites_measured(amount: f64) -> Lut1 {
     let mut lut = Lut1::from_fn(N, |x| (x + measured_delta(&t::WHITES_AMOUNTS, &t::WHITES, amount as f32, x)).clamp(0.0, 1.0));
     monotone(&mut lut);
-    Some(lut)
+    lut
 }
 
 /// Keeps a table non-decreasing (tone order never reverses).
@@ -508,7 +521,8 @@ mod tests {
 
     #[test]
     fn tone_order_never_reverses_and_every_table_fits_the_gpu() {
-        for w in [-100.0, -50.0, 37.0, 100.0] {
+        // −200 and 150: V11's extended range, the ±100 curve and then the rest
+        for w in [-200.0, -100.0, -50.0, 37.0, 100.0, 150.0] {
             let mut s = with_whites(w);
             s.curve.shadows = -100.0;
             s.curve.lights = 100.0;

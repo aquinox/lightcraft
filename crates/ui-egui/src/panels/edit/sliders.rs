@@ -26,8 +26,24 @@ pub fn apply_slider_out(
 pub(crate) fn control(app: &mut LightcraftApp, ui: &mut egui::Ui, d: &DevelopSettings, id: &str, enabled: bool) {
     let Some(spec) = controls::find(id) else { return };
     let v = controls::get(d, id).unwrap_or(spec.default);
+    let spec = &ranged(spec, app.ui.settings.light_slider_range, d.process.process());
     let out = slider(ui, spec, v, enabled, None);
     apply_slider_out(app, spec, out, |app, v| app.run("develop.set", json!({"control": id, "value": v})));
+}
+
+/// The Light sliders whose track follows Settings ▸ Light slider range.
+pub(crate) const RANGED: [&str; 4] = ["light.highlights", "light.shadows", "light.whites", "light.blacks"];
+
+/// `spec` with its track at ±`range` for the [`RANGED`] sliders (±50, ±100 or ±200), at most what `process`
+/// renders (±100 before V11: `lightcraft_pipeline::finish::light_limit`) and what the control stores; other
+/// controls unchanged. Only the track and typed values follow it: the photo keeps the amount it has, and an amount
+/// past the track shows its value with the thumb at the end.
+pub(crate) fn ranged(spec: &ControlSpec, range: u32, process: lightcraft_develop::Process) -> ControlSpec {
+    if !RANGED.contains(&spec.id) {
+        return *spec;
+    }
+    let limit = f64::from(range.clamp(50, 200)).min(lightcraft_pipeline::finish::light_limit(process)).min(spec.max);
+    ControlSpec { min: -limit, max: limit, ..*spec }
 }
 
 /// Relative temperature scale for rendered (non-raw) files: −100..100 ↔ Kelvin via mired shift.
@@ -427,5 +443,31 @@ mod tests {
         assert!(wrapped.contains(&(Locale::De, 222.0)), "German wraps in the default panel: {wrapped:?}");
         // English keeps its single row from the default width up
         assert!(!wrapped.iter().any(|&(l, w)| l == Locale::En && w >= 222.0), "{wrapped:?}");
+    }
+}
+
+#[cfg(test)]
+mod range_tests {
+    use super::{RANGED, ranged};
+    use lightcraft_develop::{Process, controls};
+
+    #[test]
+    fn the_light_tracks_follow_the_range_setting_up_to_what_the_process_renders() {
+        for id in RANGED {
+            let spec = controls::find(id).expect("control");
+            for (range, process, limit) in [
+                (50, Process::V11, 50.0),
+                (100, Process::V11, 100.0),
+                (200, Process::V11, 200.0),
+                (200, Process::V10, 100.0),
+                (50, Process::V10, 50.0),
+            ] {
+                let r = ranged(spec, range, process);
+                assert_eq!((r.min, r.max), (-limit, limit), "{id} ±{range} on {process:?}");
+            }
+        }
+        // other controls keep their own range
+        let exposure = controls::find("light.exposure").expect("control");
+        assert_eq!(ranged(exposure, 200, Process::V11).max, exposure.max);
     }
 }

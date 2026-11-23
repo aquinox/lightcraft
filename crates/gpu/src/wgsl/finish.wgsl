@@ -131,7 +131,7 @@ fn light_lum(k: u32, p: vec3<f32>) -> vec3<f32> {
 // `LightOps::apply`: linear Rec.2020 → ProPhoto, the operators in order, back.
 fn light_ops(d: vec3<f32>) -> vec3<f32> {
     var p = mul3(PRO_FROM_2020, d);
-    let n = min(pu(F_LIGHT_OPS), 2u);
+    let n = min(pu(F_LIGHT_OPS), 3u);
     for (var k = 0u; k < n; k++) {
         let mode = pu(F_LIGHT_MODE + k);
         if (mode == 0u) {
