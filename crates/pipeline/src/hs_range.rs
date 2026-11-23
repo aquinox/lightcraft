@@ -30,7 +30,7 @@ pub const H_AMP_RANGE: (f32, f32) = (0.2, 8.0);
 pub fn wanted(s: &lightcraft_develop::DevelopSettings) -> bool {
     let v8 = match s.process.process() {
         Process::V1 | Process::V2 | Process::V3 | Process::V4 | Process::V5 | Process::V6 | Process::V7 | Process::V8 | Process::V10 => false,
-        Process::V11 => true,
+        Process::V11 | Process::V12 => true,
     };
     v8 && (s.light.highlights != 0.0 || s.masks.iter().any(|m| m.visible && !m.components.is_empty() && m.adjust.highlights != 0.0))
 }

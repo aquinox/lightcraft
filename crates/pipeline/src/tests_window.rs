@@ -137,8 +137,9 @@ fn spatial_adjustments_agree_inside_the_halo() {
 // not of its own pixels: a window over the bright or the dark part renders as the full render does there
 #[test]
 fn highlights_take_the_frames_range_not_the_windows() {
+    // (the default process, V12, takes V11's Highlights)
     let mut s = DevelopSettings::default();
-    assert_eq!(s.process.process(), lightcraft_develop::Process::V11);
+    assert!(s.process.process() >= lightcraft_develop::Process::V11);
     controls::set(&mut s, "light.highlights", -100.0);
     for (x, y) in [(0, 0), (W - 400, H - 300), (300, 180)] {
         check("highlights", &s, PixelWindow { x, y, w: 400, h: 300 }, 6, 0.8);

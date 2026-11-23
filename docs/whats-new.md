@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Exposure no longer burns out JPEGs (process V12)
+- Raising Exposure on a JPEG, PNG or TIFF used to turn every tone it lifted past white flat white, so a small
+  move could ruin the highlights. It now brightens the shadows and midtones by the full amount and eases the
+  highlights towards white, keeping their detail. Raws and darkening are unchanged. This is rendering process 12:
+  photos you already edited keep their look until you choose Photo ▸ Update to Current Process.
+
 ### Shadows eases off at large amounts, as in Lightroom (process V11)
 - Global Shadows now acts more gently the further you push it, as Lightroom's does: small amounts change little,
   and +100 lifts the darkest tones about as much as Lightroom's +100 instead of washing them out. A negative Texture

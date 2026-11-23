@@ -31,7 +31,7 @@ pub fn camera_ev(make: &str, model: &str) -> f32 {
 pub fn for_source(s: &DevelopSettings, info: &SourceInfo) -> Option<CameraTone> {
     let v11 = match s.process.process() {
         Process::V1 | Process::V2 | Process::V3 | Process::V4 | Process::V5 | Process::V6 | Process::V7 | Process::V8 | Process::V10 => false,
-        Process::V11 => true,
+        Process::V11 | Process::V12 => true,
     };
     curve(info.default_tone.filter(|_| v11 && info.raw)?)
 }
