@@ -1,5 +1,5 @@
-LightCraft 0.21.1, unofficial build with rendering process V11
-==============================================================
+LightCraft 0.21.1, unofficial build with rendering processes V11 and V12
+========================================================================
 
 Unofficial build, based on LightCraft by the ArtCraft team (https://github.com/storytold/lightcraft).
 This is not an official release and is not made or supported by the ArtCraft team: please report
@@ -16,7 +16,23 @@ Adobe code or files are used):
 - Shadows easing off at large amounts; a milder negative Texture (PR #3923)
 - Contrast and Blacks: the calibrated versions already in LightCraft
 
-The work belongs to the authors of those pull requests; this build only combines them.
+Process V12 is V11 plus a fix for issue #4586: raising Exposure on a JPEG, PNG or TIFF no longer burns
+out the highlights. Shadows and midtones brighten by the full amount; the highlights ease towards white
+instead of clipping. Raws and darkening are the same as in V11.
+
+The slider work belongs to the authors of those pull requests; this build only combines them.
+
+Also in this build
+------------------
+- Find Missing Photos on Other Drives (File menu): a missing photo is looked for at the same path on
+  the other drives (another drive letter, or another disk under /media, /run/media, /mnt or /Volumes;
+  a library made on Windows also finds its photos on a Linux disk). A file found there is used when its
+  size and the capture time in its header match; with the full check also its whole content, when the
+  library knows it. Look-alikes on several drives are skipped, never guessed. One undo step.
+  Settings > General > Missing photos: run it automatically after a Lightroom import (on by default),
+  and the full check (on by default; off is faster, it never reads a whole file).
+- Import several Lightroom catalogs at once: choose more than one .lrcat in File > Import Lightroom
+  Catalog... They are imported one after another into the same library, so two catalogs merge into one.
 
 Getting started
 ---------------
@@ -26,10 +42,10 @@ Linux:   make the .AppImage file executable (right-click > Properties > "Allow e
 
 Good to know
 ------------
-- New photos (and Reset) use process V11. Photos you already edited keep their look until you choose
+- New photos (and Reset) use process V12. Photos you already edited keep their look until you choose
   Photo > Update to Current Process (works on a whole selection at once, and undoes in one step).
 - This is not an official release. If you go back to an official LightCraft later, your slider values
-  are kept, but a photo may look slightly different there, because that version does not know V11.
+  are kept, but a photo may look slightly different there, because that version does not know V11/V12.
 - If LightCraft offers to update to a new official version, that replaces this build. Skip the update
   if you want to keep these sliders.
 - If you open an existing library, back up the library folder first.
