@@ -350,8 +350,8 @@ pub struct LightcraftApp {
     /// File ▸ Import Lightroom Catalog… with several catalogs chosen: the ones still to import, one after another
     /// into the library the first went into.
     pub lightroom_queue: Vec<String>,
-    /// Whether an import of the current batch left originals missing (for the search on other drives at its end).
-    pub lightroom_batch_missing: bool,
+    /// The originals the current batch's imports couldn't find, for the search on other drives at its end.
+    pub lightroom_batch_missing: Vec<Value>,
     /// A completed import result waiting for another modal dialog to close.
     pub(crate) lightroom_result: Option<state::Dialog>,
     /// The import review of a finished scan, waiting for another dialog to close.

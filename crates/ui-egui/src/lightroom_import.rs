@@ -308,12 +308,14 @@ fn terminal(app: &mut LightcraftApp, ctx: &egui::Context, task: &LightroomTask, 
         show_result(app);
     }
     let imported = matches!(kind, Kind::Import) && value.get("cancelled") != Some(&Value::Bool(true)) && value.get("error").is_none();
-    let missing_after_import = imported && value.get("report").unwrap_or(&value)["missing"].as_array().is_some_and(|m| !m.is_empty());
+    // the originals this import couldn't find (not every photo missing in the library)
+    let missing_now: Vec<Value> =
+        if imported { value.get("report").unwrap_or(&value)["missing"].as_array().cloned().unwrap_or_default() } else { Vec::new() };
     app.lightroom_last = Some(value);
     app.lightroom = None;
     app.toast_for(ctx, message, 6.0);
     if matches!(kind, Kind::Import) {
-        app.lightroom_batch_missing |= missing_after_import;
+        app.lightroom_batch_missing.extend(missing_now);
         // several catalogs chosen: the next one merges into the library this one went into; a cancelled or failed
         // import stops the batch
         if !imported {
@@ -328,11 +330,11 @@ fn terminal(app: &mut LightcraftApp, ctx: &egui::Context, task: &LightroomTask, 
                 return;
             }
         }
-        // Settings ▸ Missing photos: at the end of the batch, the originals it couldn't find are looked for on the
-        // other drives
-        let batch_missing = std::mem::take(&mut app.lightroom_batch_missing);
-        if imported && batch_missing && app.ui.settings.missing_other_drives_auto {
-            let _ = crate::menus::run_ui_command(app, "file.findMissingOnOtherDrives", &json!({}));
+        // Settings ▸ Missing photos: at the end of the batch, the originals its imports couldn't find are looked
+        // for on the other drives
+        let paths = std::mem::take(&mut app.lightroom_batch_missing);
+        if !paths.is_empty() && app.ui.settings.missing_other_drives_auto {
+            let _ = crate::menus::run_ui_command(app, "file.findMissingOnOtherDrives", &json!({"paths": paths}));
         }
     }
 }
