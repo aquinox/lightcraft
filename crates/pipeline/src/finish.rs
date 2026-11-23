@@ -1085,7 +1085,9 @@ mod tests {
         assert!(t < GAMUT_WARN && mapped.iter().all(|&c| (0.0..=1.0).contains(&c)));
         assert!(mapped[0] > mapped[1] && mapped[1] >= mapped[2]);
 
-        // Pinned real render covering neutral (0.18), highlights (4.0), and channel edges.
+        // Pinned real render covering neutral (0.18), highlights (4.0), and channel edges, on the legacy
+        // process these values were pinned on (V10): V11's Highlights follows the frame's range and leaves
+        // this tiny frame's over-white green edge clipped.
         let mut src = lightcraft_raster::Rgb32f::filled(8, 8, [0.18, 0.18, 0.18]);
         for x in 0..8 {
             src.data[x] = [4.0, 4.0, 4.0]; // row 0: highlight
@@ -1093,7 +1095,7 @@ mod tests {
             src.data[16 + x] = [0.01, 1.5, 0.02]; // row 2: green edge
             src.data[24 + x] = [0.02, 0.05, 1.8]; // row 3: blue edge
         }
-        let mut s = DevelopSettings::default();
+        let mut s = DevelopSettings { process: Process::V10.version(), ..Default::default() };
         s.light.highlights = -30.0;
         s.light.shadows = 20.0;
         s.curve.master = vec![Point::new(0.0, 0.04), Point::new(0.5, 0.56), Point::new(1.0, 0.96)];

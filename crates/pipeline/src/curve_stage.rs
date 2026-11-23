@@ -253,10 +253,12 @@ impl CurveStage {
         let to_pts = |p: &[Point]| p.iter().map(|q| (q.x, q.y)).collect::<Vec<_>>();
         let mut base = if parametric_on { parametric(c) } else { Lut1::identity(N) };
         if let Some(w) = &w {
-            base = base.compose(w);
+            // `compose_len`: the shared `compose` refines to a common grid (up to `MAX_LUT` entries), and the GPU
+            // reads every table of this stage at `N` entries
+            base = base.compose_len(w, N);
         }
         if master {
-            base = MonotoneCurve::new(&to_pts(&c.master)).to_lut(N).compose(&base);
+            base = MonotoneCurve::new(&to_pts(&c.master)).to_lut(N).compose_len(&base, N);
         }
         let per = [&c.red, &c.green, &c.blue];
         let chan = std::array::from_fn(|i| match per.get(i) {
