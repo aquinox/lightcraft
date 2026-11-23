@@ -307,16 +307,33 @@ fn terminal(app: &mut LightcraftApp, ctx: &egui::Context, task: &LightroomTask, 
         app.lightroom_result = Some(result_dialog(&value, &message, &app.session.catalog));
         show_result(app);
     }
-    let missing_after_import = matches!(kind, Kind::Import)
-        && value.get("cancelled") != Some(&Value::Bool(true))
-        && value.get("error").is_none()
-        && value.get("report").unwrap_or(&value)["missing"].as_array().is_some_and(|m| !m.is_empty());
+    let imported = matches!(kind, Kind::Import) && value.get("cancelled") != Some(&Value::Bool(true)) && value.get("error").is_none();
+    let missing_after_import = imported && value.get("report").unwrap_or(&value)["missing"].as_array().is_some_and(|m| !m.is_empty());
     app.lightroom_last = Some(value);
     app.lightroom = None;
     app.toast_for(ctx, message, 6.0);
-    // Settings ▸ Missing photos: the originals the import couldn't find are looked for on the other drives
-    if missing_after_import && app.ui.settings.missing_other_drives_auto {
-        let _ = crate::menus::run_ui_command(app, "file.findMissingOnOtherDrives", &json!({}));
+    if matches!(kind, Kind::Import) {
+        app.lightroom_batch_missing |= missing_after_import;
+        // several catalogs chosen: the next one merges into the library this one went into; a cancelled or failed
+        // import stops the batch
+        if !imported {
+            app.lightroom_queue.clear();
+        } else if !app.lightroom_queue.is_empty() {
+            let next = app.lightroom_queue.remove(0);
+            let req = crate::lightroom_destination::Request { into: Some(crate::lightroom_destination::Destination::Open), ..Default::default() };
+            if let Err(e) = crate::lightroom_destination::import(app, &next, &req) {
+                app.lightroom_queue.clear();
+                app.toast_for(ctx, crate::i18n::tr_format!("{next} was not imported: {e}", next = next, e = e), 6.0);
+            } else {
+                return;
+            }
+        }
+        // Settings ▸ Missing photos: at the end of the batch, the originals it couldn't find are looked for on the
+        // other drives
+        let batch_missing = std::mem::take(&mut app.lightroom_batch_missing);
+        if imported && batch_missing && app.ui.settings.missing_other_drives_auto {
+            let _ = crate::menus::run_ui_command(app, "file.findMissingOnOtherDrives", &json!({}));
+        }
     }
 }
 
