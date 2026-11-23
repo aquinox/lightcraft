@@ -66,6 +66,9 @@ jobs:
           $bin = 'target\x86_64-pc-windows-msvc\release'
           Copy-Item (Join-Path $bin 'lightcraft.exe'), (Join-Path $bin 'lightcraft-cli.exe') $stage
           Copy-Item NOTICE, LICENSE-MIT, LICENSE-APACHE $stage
+          # the embedded fonts' OFL texts, as the official packages ship them
+          . packaging/windows/font-licences.ps1
+          Write-FontLicences (Join-Path $stage 'FONT-LICENCES.txt') (Join-Path $PWD 'assets\fonts\OFL-Inter.txt') $env:CRAFT_FONTS_DIR
           if (Test-Path JOHN-BUILD.txt) { Copy-Item JOHN-BUILD.txt (Join-Path $stage 'LEESMIJ.txt') }
           $out = Join-Path $env:RUNNER_TEMP 'out'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -153,4 +156,4 @@ jobs:
           notes=(--notes "Persoonlijke build")
           [ -f JOHN-BUILD.txt ] && notes=(--notes-file JOHN-BUILD.txt)
           gh release create "$tag" artifacts/* --prerelease --target "$GITHUB_SHA" \
-            --title "LightCraft met Lightroom-achtige sliders ($tag)" "${notes[@]}"
+            --title "LightCraft 0.21.1, onofficiële build met process V11 ($tag)" "${notes[@]}"

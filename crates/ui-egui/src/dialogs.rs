@@ -2044,12 +2044,16 @@ fn about_body(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, dlg: &mut 
         _ => {
             ui.label(egui::RichText::new("LightCraft").font(t.semibold(20.0)).color(t.text));
             ui.label(crate::i18n::tr_format!("Version {} — a clean-room, pure-Rust photo library and raw developer.", env!("CARGO_PKG_VERSION")));
+            // an unofficial build: its marks are removed, and it says in plain text what it is based on
+            ui.label(crate::i18n::tr(
+                "Unofficial build based on LightCraft by the ArtCraft team, with the Light sliders, tone curves, colour mixer and Colour Grading from pull requests #4076, #4100 and #3923.",
+            ));
             ui.label(crate::i18n::tr_format!(
                 "MIT OR Apache-2.0. Fonts: {} (OFL). Icons: original.",
                 crate::theme::font_credits(app.chinese_font.is_some())
             ));
             ui.add_space(10.0);
-            let r = crate::button::Button::new("Join the ArtCraft Discord")
+            let r = crate::button::Button::new("LightCraft Community on Discord")
                 .primary()
                 .large()
                 .min_width(260.0)
@@ -2060,11 +2064,7 @@ fn about_body(app: &mut LightcraftApp, ui: &mut egui::Ui, t: &Tokens, dlg: &mut 
                 let _ = crate::links::open(app, crate::links::DISCORD);
             }
             ui.add_space(6.0);
-            for (label, url) in [
-                ("LightCraft website", crate::links::APP_PAGE),
-                ("Source code on GitHub", crate::links::GITHUB),
-                ("ArtCraft — more creative apps", crate::links::WEBSITE),
-            ] {
+            for (label, url) in [("LightCraft website", crate::links::APP_PAGE), ("Source code on GitHub", crate::links::GITHUB)] {
                 let r = ui.link(crate::i18n::tr(label)).on_hover_text(url);
                 if r.clicked() {
                     let _ = crate::links::open(app, url);

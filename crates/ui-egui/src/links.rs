@@ -8,8 +8,9 @@ pub const DISCORD: &str = "https://discord.gg/artcraft";
 pub const WEBSITE: &str = "https://getartcraft.com";
 /// This app's page on the ArtCraft website.
 pub const APP_PAGE: &str = "https://getartcraft.com/apps/lightcraft";
-/// This app's source repository.
-pub const GITHUB: &str = "https://github.com/storytold/lightcraft";
+/// This build's source repository: an unofficial build (aquinox/lightcraft), so its reports and source don't
+/// go to the official project.
+pub const GITHUB: &str = "https://github.com/aquinox/lightcraft";
 
 /// (UI command id, menu label, URL) for each link, in Help-menu order.
 /// The user documentation (docs/ in the repository).
@@ -17,15 +18,15 @@ pub const HELP: &str = "https://github.com/storytold/lightcraft/tree/main/docs";
 
 pub const LINKS: &[(&str, &str, &str)] = &[
     ("app.help", "LightCraft Help", HELP),
-    ("app.discord", "Join the ArtCraft Discord…", DISCORD),
+    ("app.discord", "LightCraft Community on Discord…", DISCORD),
     ("app.website", "LightCraft Website", APP_PAGE),
     ("app.github", "LightCraft on GitHub", GITHUB),
-    ("app.artcraft", "ArtCraft Website", WEBSITE),
+    ("app.artcraft", "Official LightCraft (getartcraft.com)", WEBSITE),
     ("app.feedback", "Send Feedback…", FEEDBACK),
 ];
 
 /// Where feedback and bug reports go.
-pub const FEEDBACK: &str = "https://github.com/storytold/lightcraft/issues/new";
+pub const FEEDBACK: &str = "https://github.com/aquinox/lightcraft";
 
 /// The URL behind a link command id.
 pub fn url_of(cmd: &str) -> Option<&'static str> {
@@ -51,6 +52,7 @@ mod tests {
             assert_eq!(url_of(id), Some(*url));
         }
         assert!(APP_PAGE.ends_with(&format!("/apps/{APP}")));
-        assert!(GITHUB.ends_with(&format!("/storytold/{APP}")));
+        // this unofficial build links its own fork (any owner), still named after the app
+        assert!(GITHUB.ends_with(&format!("/{APP}")));
     }
 }

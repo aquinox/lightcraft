@@ -126,7 +126,8 @@ impl ParametricGraph {
     /// The graph for `s`: measured when `s`'s process is V11 or later and the splits are the defaults.
     pub fn new(s: &DevelopSettings) -> ParametricGraph {
         let model = ParametricCurve::new(&s.curve);
-        let measured = (s.process.process() >= Process::V11 && default_splits(&s.curve)).then(|| measured_parametric(model.amounts.map(|a| a as f32)));
+        let measured =
+            (s.process.process() >= Process::V11 && default_splits(&s.curve)).then(|| measured_parametric(model.amounts.map(|a| a as f32)));
         ParametricGraph { model, measured }
     }
 

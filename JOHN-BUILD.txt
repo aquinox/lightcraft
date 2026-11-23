@@ -1,8 +1,14 @@
-LightCraft met Lightroom-achtige sliders (persoonlijke build)
-=============================================================
+LightCraft 0.21.1, onofficiële build met process V11
+====================================================
 
-Dit is LightCraft 0.21.1 (ontwikkelversie van 21 november 2026) met daarin het werk uit vier
-nog niet samengevoegde pull requests van issue #523, samengevoegd in een eigen rendering process V11:
+Onofficiële build, gebaseerd op LightCraft van het ArtCraft-team (https://github.com/storytold/lightcraft).
+Geen officiële release en niet gemaakt of ondersteund door het ArtCraft-team: meld problemen hier,
+niet bij het officiële project.
+
+Dit is LightCraft 0.21.1 (ontwikkelversie van 21 november 2026) met daarin het werk uit drie
+nog niet samengevoegde pull requests van issue #523, samengevoegd in een eigen rendering process V11.
+De makers van die PR's hebben het gedrag van de sliders gemeten aan exports van Lightroom en
+Camera Raw (merken van Adobe; geen code of bestanden van Adobe):
 
 - Whites en de Tone Curve, gemeten tegen Lightroom (PR #4076)
 - Highlights relatief aan het toonbereik van de foto, Color Grading, HSL-kleurmixer en
