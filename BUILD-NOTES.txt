@@ -1,0 +1,48 @@
+LightCraft 0.21.1, unofficial build with rendering process V11, Light sliders up to ±200
+========================================================================================
+
+Unofficial build, based on LightCraft by the ArtCraft team (https://github.com/storytold/lightcraft).
+This is not an official release and is not made or supported by the ArtCraft team: please report
+problems here, not to the official project.
+
+This is LightCraft 0.21.1 (development version of 21 November 2026) with the work of three pull
+requests for issue #523 that are not merged yet, combined in one rendering process, V11. Their authors
+measured how the sliders respond against exports from Lightroom and Camera Raw (Adobe trademarks; no
+Adobe code or files are used):
+
+- Whites and the Tone Curve, measured against exports (PR #4076)
+- Highlights relative to the photo's tonal range, Color Grading, the HSL color mixer, and the default
+  base curve for camera profiles without their own curve (PR #4100)
+- Shadows easing off at large amounts; a milder negative Texture (PR #3923)
+- Contrast and Blacks: the calibrated versions already in LightCraft
+
+The work belongs to the authors of those pull requests; this build only combines them.
+
+Extra in this variant: Highlights, Shadows, Whites and Blacks up to ±200, in steps of 0.1
+-----------------------------------------------------------------------------------------
+- Setting: Settings > General > Editing > Light slider range: ±50 (finer: each step on the slider is
+  half as big), ±100 (standard) or ±200 (twice as far).
+- A photo stores the real value (for example Highlights -150). The setting only decides how far the
+  slider reaches, so it never changes how a photo looks.
+- Past ±100 the effect stacks on the full ±100 effect: -150 is "-100, plus another -50". This part is
+  extrapolated, not measured (Lightroom itself stops at 100). It applies to photos on process V11;
+  older processes stay at ±100.
+- You can type values in tenths (-37.5); Shift-drag adjusts finely.
+- Stored values past 100 are not known to the regular build or official LightCraft: there they count
+  as ±100.
+
+Getting started
+---------------
+Windows: unzip and run lightcraft.exe. No installation needed.
+Linux:   make the .AppImage file executable (right-click > Properties > "Allow executing as program",
+         or: chmod +x file.AppImage) and run it.
+
+Good to know
+------------
+- New photos (and Reset) use process V11. Photos you already edited keep their look until you choose
+  Photo > Update to Current Process (works on a whole selection at once, and undoes in one step).
+- This is not an official release. If you go back to an official LightCraft later, your slider values
+  are kept, but a photo may look slightly different there, because that version does not know V11.
+- If LightCraft offers to update to a new official version, that replaces this build. Skip the update
+  if you want to keep these sliders.
+- If you open an existing library, back up the library folder first.
