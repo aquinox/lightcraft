@@ -1,19 +1,20 @@
-# Persoonlijke builds voor aquinox/lightcraft (niet bedoeld voor upstream).
-# Bouwt LightCraft voor Windows x64 (portable zip) en Linux x86_64 (AppImage en tar.gz) bij elke
-# push naar een `john-*`-branch en uploadt ze als artifacts. Staat "[release]" in het commitbericht,
-# dan komen ze ook samen als pre-release op de Releases-pagina van de fork.
-name: Windows- en Linux-build (persoonlijk)
+# Builds of this fork (aquinox/lightcraft), not meant for upstream.
+# Builds LightCraft for Windows x64 (portable zip) and Linux x86_64 (AppImage and tar.gz) on every push
+# to an `aquinox-*` branch and uploads them as artifacts. With "[release]" in the commit message they are
+# also published together as a pre-release on the fork's Releases page; its title is the first line of
+# BUILD-NOTES.txt and its notes are that file.
+name: Windows and Linux builds (fork)
 
 on:
   push:
-    branches: ["john-*"]
+    branches: ["aquinox-*"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: john-build-${{ github.ref }}
+  group: aquinox-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,9 +37,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: john-windows-x64
+          key: aquinox-windows-x64
 
-      - name: Fonts (craft-fonts, zoals de officiële builds)
+      - name: Fonts (craft-fonts, as the official builds use)
         shell: pwsh
         run: |
           . packaging/windows/fonts.ps1
@@ -46,21 +47,22 @@ jobs:
           "CRAFT_FONTS_DIR=$env:CRAFT_FONTS_DIR" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "CRAFT_FONTS_REQUIRED=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Bouwen (release, statische C-runtime)
+      - name: Build (release, static C runtime)
         shell: pwsh
         run: |
           $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = '-C target-feature=+crt-static'
           $env:LIGHTCRAFT_BUILD_SHA = (git rev-parse HEAD)
           $env:LIGHTCRAFT_BUILD_DATE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
           cargo build --release --locked -p lightcraft -p lightcraft-cli --features lightcraft/heif,lightcraft-cli/heif --target x86_64-pc-windows-msvc
-          if ($LASTEXITCODE -ne 0) { throw "cargo build faalde ($LASTEXITCODE)" }
+          if ($LASTEXITCODE -ne 0) { throw "cargo build failed ($LASTEXITCODE)" }
 
       - name: Portable zip
         id: zip
         shell: pwsh
         run: |
           $short = (git rev-parse --short=8 HEAD)
-          $name = "lightcraft-tone-v11-$short-windows-x64-portable"
+          $variant = $env:GITHUB_REF_NAME -replace '^aquinox-', ''
+          $name = "lightcraft-$variant-$short-windows-x64-portable"
           $stage = Join-Path $env:RUNNER_TEMP $name
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           $bin = 'target\x86_64-pc-windows-msvc\release'
@@ -69,11 +71,10 @@ jobs:
           # the embedded fonts' OFL texts, as the official packages ship them
           . packaging/windows/font-licences.ps1
           Write-FontLicences (Join-Path $stage 'FONT-LICENCES.txt') (Join-Path $PWD 'assets\fonts\OFL-Inter.txt') $env:CRAFT_FONTS_DIR
-          if (Test-Path JOHN-BUILD.txt) { Copy-Item JOHN-BUILD.txt (Join-Path $stage 'LEESMIJ.txt') }
+          if (Test-Path BUILD-NOTES.txt) { Copy-Item BUILD-NOTES.txt (Join-Path $stage 'README-BUILD.txt') }
           $out = Join-Path $env:RUNNER_TEMP 'out'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           Compress-Archive -Path $stage -DestinationPath (Join-Path $out "$name.zip")
-          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "out=$out" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - uses: actions/upload-artifact@v4
@@ -91,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Systeempakketten
+      - name: System packages
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev libxcursor-dev \
@@ -106,23 +107,24 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: john-linux-x64
+          key: aquinox-linux-x64
 
-      - name: Bouwen en verpakken (AppImage en tar.gz)
+      - name: Build and package (AppImage and tar.gz)
         env:
           DIST: ${{ runner.temp }}/dist
         run: packaging/linux/package.sh --formats "appimage tar"
 
-      - name: Bestanden hernoemen
+      - name: Rename files
         id: files
         run: |
           short=$(git rev-parse --short=8 HEAD)
+          variant="${GITHUB_REF_NAME#aquinox-}"
           out="$RUNNER_TEMP/out"
           mkdir -p "$out"
           for f in "$RUNNER_TEMP"/dist/*.AppImage "$RUNNER_TEMP"/dist/*.tar.gz; do
             [ -e "$f" ] || continue
             ext="${f##*.}"; [ "$ext" = gz ] && ext=tar.gz
-            cp "$f" "$out/lightcraft-tone-v11-$short-linux-x86_64.$ext"
+            cp "$f" "$out/lightcraft-$variant-$short-linux-x86_64.$ext"
           done
           ls -l "$out"
           echo "out=$out" >> "$GITHUB_OUTPUT"
@@ -150,10 +152,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           short=$(git rev-parse --short=8 HEAD)
-          tag="tone-v11-$short"
+          tag="${GITHUB_REF_NAME#aquinox-}-$short"
           ls -l artifacts
           (cd artifacts && sha256sum * > SHA256SUMS.txt)
-          notes=(--notes "Persoonlijke build")
-          [ -f JOHN-BUILD.txt ] && notes=(--notes-file JOHN-BUILD.txt)
-          gh release create "$tag" artifacts/* --prerelease --target "$GITHUB_SHA" \
-            --title "LightCraft 0.21.1, onofficiële build met process V11 ($tag)" "${notes[@]}"
+          title="LightCraft, unofficial build"
+          notes=(--notes "Unofficial build of LightCraft.")
+          if [ -f BUILD-NOTES.txt ]; then
+            title="$(head -n1 BUILD-NOTES.txt)"
+            notes=(--notes-file BUILD-NOTES.txt)
+          fi
+          gh release create "$tag" artifacts/* --prerelease --target "$GITHUB_SHA" --title "$title ($tag)" "${notes[@]}"
