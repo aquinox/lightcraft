@@ -793,6 +793,23 @@ fn cached_renders_match_uncached() {
 }
 
 /// Calibrated Contrast and Blacks, legacy Whites, combined edits, windows and cache reuse.
+/// Process V12's Exposure on a display-referred source compresses towards white instead of clipping
+/// (`lightcraft_pipeline::finish::expose`): the GPU kernel follows the CPU.
+#[test]
+fn display_exposure_shoulder_matches() {
+    if !gpu() {
+        return;
+    }
+    let src = scene(1, 960, 640);
+    let info = SourceInfo::default();
+    let req = RenderRequest::fit(960, 640);
+    for ev in [0.3, 1.0, 2.5] {
+        let mut s = DevelopSettings { process: Process::V12.version(), ..Default::default() };
+        s.light.exposure = ev;
+        check(&format!("V12 display Exposure +{ev}"), &src, &info, &s, &req);
+    }
+}
+
 #[test]
 fn light_v3_operators_match() {
     if !gpu() {

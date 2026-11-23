@@ -114,13 +114,27 @@ pub enum Process {
     /// (`lightcraft_pipeline::hs_range`, PR #4100); global Highlights and Shadows eased off at large
     /// amounts (PR #3923). Contrast and Blacks keep V10's calibrated operators.
     V11,
+    /// V11, with Exposure on a display-referred source (a JPEG, PNG, TIFF) compressing what it lifts past white
+    /// instead of clipping it (`lightcraft_pipeline::finish::expose`, issue #4586); raws and darkening as in V11.
+    V12,
 }
 
 impl Process {
     /// Every process, oldest first (`ProcessVersion(9)` is reserved for `#4069`).
-    pub const ALL: [Process; 10] =
-        [Process::V1, Process::V2, Process::V3, Process::V4, Process::V5, Process::V6, Process::V7, Process::V8, Process::V10, Process::V11];
-    pub const LATEST: Process = Process::V11;
+    pub const ALL: [Process; 11] = [
+        Process::V1,
+        Process::V2,
+        Process::V3,
+        Process::V4,
+        Process::V5,
+        Process::V6,
+        Process::V7,
+        Process::V8,
+        Process::V10,
+        Process::V11,
+        Process::V12,
+    ];
+    pub const LATEST: Process = Process::V12;
 
     pub const fn version(self) -> ProcessVersion {
         match self {
@@ -134,6 +148,7 @@ impl Process {
             Process::V8 => ProcessVersion(8),
             Process::V10 => ProcessVersion(10),
             Process::V11 => ProcessVersion(11),
+            Process::V12 => ProcessVersion(12),
         }
     }
 }

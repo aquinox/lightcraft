@@ -35,6 +35,7 @@ const FIELDS: &[(&str, usize)] = &[
     ("HS_RANGE_LO", 1),
     ("HS_RANGE_HI", 1),
     ("GAIN", 1),
+    ("EXPO_KNEE", 1),
     ("EV", 1),
     ("AIR", 1),
     ("AIR_PRE", 1),
@@ -302,6 +303,7 @@ pub fn finish_block(fp: &FinishParams, masks: &[[f32; MASK_TERMS]], present: &Pr
     p.f("HS_RANGE_HI", fp.hs_range.map_or(0.0, |r| r.hi));
     p.f("REFINE_SAT", fp.refine_sat);
     p.f("GAIN", fp.gain);
+    p.f("EXPO_KNEE", fp.expo_knee);
     p.f("EV", fp.ev);
     p.f("AIR", fp.air);
     p.f("AIR_PRE", fp.air_pre);

@@ -1357,22 +1357,29 @@ fn ui_commands_10(app: &mut LightcraftApp, ctx: &egui::Context, id: &str, p: &Va
                 Ok(req) => req,
                 Err(e) => return Some(Err(e)),
             };
-            let path = match p.get("path").and_then(Value::as_str).map(str::to_string) {
-                Some(path) => Some(path),
-                None => {
-                    let req = PickRequest::file(
-                        crate::i18n::tr("Import Lightroom Catalog"),
+            // `paths` (or several chosen in the dialog): imported one after another into the library the first one
+            // goes into, so two catalogs merge into one library
+            let paths: Vec<String> = match (p.get("paths").and_then(Value::as_array), p.get("path").and_then(Value::as_str)) {
+                (Some(list), _) => list.iter().filter_map(|v| v.as_str().map(str::to_string)).collect(),
+                (None, Some(path)) => vec![path.to_string()],
+                (None, None) => {
+                    let req = PickRequest::files(
+                        Some(crate::i18n::tr("Import Lightroom Catalog").into()),
                         crate::i18n::tr("Lightroom Classic Catalog"),
                         &["lrcat", "zip"],
                     );
                     match crate::pick::ask(app, id, p, "path", req, |s| s.pick_lightroom_catalog.as_mut().and_then(|f| f()).map(|x| vec![x])) {
-                        Picked::Now(v) => v.into_iter().next(),
-                        Picked::Later | Picked::Unavailable => None,
+                        Picked::Now(v) => v,
+                        Picked::Later | Picked::Unavailable => Vec::new(),
                     }
                 }
             };
-            match path {
-                Some(path) => crate::lightroom_destination::import(app, &path, &req),
+            match paths.split_first() {
+                Some((first, rest)) => {
+                    app.lightroom_queue = rest.to_vec();
+                    app.lightroom_batch_missing = false;
+                    crate::lightroom_destination::import(app, first, &req)
+                }
                 None => Ok(Value::Null),
             }
         }
@@ -1399,6 +1406,7 @@ fn ui_commands_11(app: &mut LightcraftApp, ctx: &egui::Context, id: &str, p: &Va
             Ok(Value::Null)
         }
         "file.findMissing" => file_find_missing_command(app, id, p),
+        "file.findMissingOnOtherDrives" => file_find_missing_on_other_drives_command(app, p),
         "photo.tagFromTracklog" => photo_tag_from_tracklog_command(app, ctx, id, p),
         "photo.locate" => photo_locate_command(app, p),
         "file.addFromDevice" => {
@@ -1853,6 +1861,35 @@ fn file_find_missing_command(app: &mut LightcraftApp, id: &str, p: &Value) -> Re
         return Err("Find Missing Photos: search timed out (search continues in the background)".into());
     }
     app.ui.last_find_missing_result.take().unwrap_or_else(|| Err("Find Missing Photos: worker terminated unexpectedly".into()))
+}
+
+/// The `file.findMissingOnOtherDrives {hash?, wait?, timeout?}` command: every missing photo looked for at the same
+/// path on the other drives (`lightcraft_engine::cmd::missing::plan_other_drives`) on a worker thread, and what is
+/// found relinked as one undo step. The full content check follows Settings ▸ Missing photos unless `hash` says.
+pub(crate) fn file_find_missing_on_other_drives_command(app: &mut LightcraftApp, p: &Value) -> Result<Value, String> {
+    const LABEL: &str = "Find Missing Photos on Other Drives";
+    if app.tasks.is_running(LABEL) || app.tasks.is_running("Find Missing Photos") {
+        return Err("Find Missing Photos is already searching".into());
+    }
+    let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);
+    let timeout = find_missing_timeout(p)?;
+    let verify_hash = p.get("hash").and_then(Value::as_bool).unwrap_or(app.ui.settings.missing_other_drives_hash);
+    let candidates = lightcraft_engine::cmd::missing::find_candidates(&app.session.catalog);
+    let work = move || {
+        let roots = lightcraft_engine::cmd::missing::drive_roots();
+        Ok(lightcraft_engine::cmd::missing::plan_other_drives(&candidates, &roots, verify_hash))
+    };
+    app.ui.last_find_missing = None;
+    app.ui.last_find_missing_result = None;
+    crate::tasks::spawn(app, LABEL, Some("findMissing"), work, find_missing_done)?;
+    if !wait {
+        return Ok(json!({"background": true}));
+    }
+    let ctx = app.tasks.repaint.clone().unwrap_or_default();
+    if !crate::tasks::wait_for(app, &ctx, LABEL, timeout) {
+        return Err("Find Missing Photos on Other Drives: search timed out (search continues in the background)".into());
+    }
+    app.ui.last_find_missing_result.take().unwrap_or_else(|| Err("Find Missing Photos on Other Drives: worker terminated unexpectedly".into()))
 }
 
 /// The `photo.tagFromTracklog` command.
