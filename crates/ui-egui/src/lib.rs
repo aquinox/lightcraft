@@ -353,8 +353,10 @@ pub struct LightcraftApp {
     /// The originals the current batch's imports couldn't find, for the search on other drives at its end.
     pub lightroom_batch_missing: Vec<Value>,
     /// Settings ▸ Missing photos: the originals finished Lightroom imports couldn't find, waiting for the search on
-    /// other drives that was already running to end ([`lightroom_import::search_other_drives`]).
+    /// other drives that was already running to end ([`lightroom_import::search_other_drives`]), and the library
+    /// (its generation) they are in.
     pub other_drives_waiting: Vec<Value>,
+    pub other_drives_waiting_in: u64,
     /// A completed import result waiting for another modal dialog to close.
     pub(crate) lightroom_result: Option<state::Dialog>,
     /// The import review of a finished scan, waiting for another dialog to close.
