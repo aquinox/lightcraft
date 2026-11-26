@@ -347,9 +347,9 @@ pub struct LightcraftApp {
     pub lightroom: Option<lightroom_import::LightroomTask>,
     /// Last terminal Lightroom result, exposed by the command's status/wait response.
     pub lightroom_last: Option<Value>,
-    /// File ▸ Import Lightroom Catalog… with several catalogs chosen: the ones still to import, one after another
-    /// into the library the first went into.
-    pub lightroom_queue: Vec<String>,
+    /// File ▸ Import Lightroom Catalog… with several catalogs chosen and the first one's destination confirmed:
+    /// the ones still to import, bound to the import they follow ([`lightroom_import::Batch`]).
+    pub lightroom_queue: Option<lightroom_import::Batch>,
     /// The originals the current batch's imports couldn't find, for the search on other drives at its end.
     pub lightroom_batch_missing: Vec<Value>,
     /// Settings ▸ Missing photos: the originals finished Lightroom imports couldn't find, waiting for the search on
@@ -357,8 +357,9 @@ pub struct LightcraftApp {
     /// (its generation) they are in.
     pub other_drives_waiting: Vec<Value>,
     pub other_drives_waiting_in: u64,
-    /// A completed import result waiting for another modal dialog to close.
-    pub(crate) lightroom_result: Option<state::Dialog>,
+    /// Completed import results waiting for another modal dialog to close, oldest first: each catalog of a
+    /// batch keeps its own.
+    pub(crate) lightroom_results: Vec<state::Dialog>,
     /// The import review of a finished scan, waiting for another dialog to close.
     pub(crate) review_pending: Option<state::Dialog>,
     /// The library generation the window title and the recent list were last updated for.

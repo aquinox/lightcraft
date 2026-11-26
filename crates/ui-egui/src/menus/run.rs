@@ -1376,14 +1376,7 @@ fn ui_commands_10(app: &mut LightcraftApp, ctx: &egui::Context, id: &str, p: &Va
                 }
             };
             match paths.split_first() {
-                Some((first, rest)) => {
-                    // the rest wait only behind a batch that started (or whose destination window is up): a refused
-                    // request leaves a running batch's queue alone
-                    let r = crate::lightroom_destination::import(app, first, &req);
-                    if r.is_ok() {
-                        app.lightroom_queue = rest.to_vec();
-                        app.lightroom_batch_missing.clear();
-                    }
+                Some((first, rest)) => crate::lightroom_import::import_batch(app, first, rest, &req),
                     r
                 }
                 None => Ok(Value::Null),
