@@ -78,6 +78,7 @@ mod masking;
 mod masking_layout;
 mod menubar;
 mod merge_preview;
+mod missing_photos;
 mod missing_sweep;
 mod move_folder;
 mod offline;

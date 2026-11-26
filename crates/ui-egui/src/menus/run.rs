@@ -1406,6 +1406,7 @@ fn ui_commands_11(app: &mut LightcraftApp, ctx: &egui::Context, id: &str, p: &Va
         }
         "file.findMissing" => file_find_missing_command(app, id, p),
         "file.findMissingOnOtherDrives" => file_find_missing_on_other_drives_command(app, p),
+        "file.missingPhotos" => crate::missing_photos::open(app),
         "photo.tagFromTracklog" => photo_tag_from_tracklog_command(app, ctx, id, p),
         "photo.locate" => photo_locate_command(app, p),
         "file.addFromDevice" => {

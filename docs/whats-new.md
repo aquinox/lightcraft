@@ -13,6 +13,13 @@
 - After a Lightroom catalog import, the originals it couldn't find are looked for this way automatically. Both are
   in Settings ▸ General ▸ Missing photos.
 
+### All missing photos in one window
+- File ▸ Missing Photos… lists every photo whose original isn't where the library expects it, with the folder it
+  was in. When a disk came back under another drive letter, or a library made on Windows is opened on Linux, Replace
+  changes the beginning of all their paths at once (it suggests the folder they share), and each row's new path can
+  also be typed. Every new path is checked: found, not there, another size, or already another photo's. Relink
+  relinks the ticked ones, those found, as one undo step.
+
 ### Import several Lightroom catalogs at once
 - File ▸ Import Lightroom Catalog… now takes several catalogs. The first asks where it goes, as before; the others are
   imported after it, one by one, into the same library, so two catalogs end up in one library without starting each
