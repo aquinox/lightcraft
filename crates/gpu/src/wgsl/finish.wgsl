@@ -690,7 +690,7 @@ fn expose(c: vec3<f32>, gain: f32, knee: f32) -> vec3<f32> {
         return c * gain;
     }
     let zw = (gain - knee) / (1.0 - knee);
-    let z = min((y - knee) / (1.0 - knee), zw);
+    let z = (y - knee) / (1.0 - knee);
     let f = knee + (1.0 - knee) * z * (1.0 + z / (zw * zw)) / (1.0 + z);
     return c * (f / m);
 }
@@ -797,7 +797,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
     // --- local tone in log luminance
     var l1 = l0;
-    if (dz != 0.0 || l_exp != 0.0) {
+    // (Exposure's compression towards white changes the pixel's luminance from `l0`'s plain gain)
+    if (dz != 0.0 || l_exp != 0.0 || pf(F_EXPO_KNEE) > 0.0) {
         l1 = log_lum(c);
     }
     let shift = l1 - l0;

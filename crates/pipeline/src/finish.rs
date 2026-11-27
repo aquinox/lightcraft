@@ -359,7 +359,7 @@ pub fn expose(c: [f32; 3], gain: f32, knee: f32) -> [f32; 3] {
         return c.map(|v| v * gain);
     }
     let zw = (gain - knee) / (1.0 - knee);
-    let z = ((y - knee) / (1.0 - knee)).min(zw);
+    let z = (y - knee) / (1.0 - knee);
     let f = knee + (1.0 - knee) * z * (1.0 + z / (zw * zw)) / (1.0 + z);
     let scale = f / m;
     c.map(|v| v * scale)
@@ -838,7 +838,8 @@ fn adjust_scene_pixel(p: &Prepared, fp: &FinishParams, index: usize, raw: [f32; 
     }
 
     let l0 = p.log_l.data[index] + fp.ev;
-    let log_luminance = if dehaze != 0.0 || l_exp != 0.0 { log_lum(color) } else { l0 };
+    // (Exposure's compression towards white changes the pixel's luminance from `l0`'s plain gain)
+    let log_luminance = if dehaze != 0.0 || l_exp != 0.0 || fp.expo_knee > 0.0 { log_lum(color) } else { l0 };
     (color, log_luminance)
 }
 
