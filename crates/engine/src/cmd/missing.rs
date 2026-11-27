@@ -768,12 +768,6 @@ fn find_missing(s: &mut Session, p: &Value) -> Result<Value> {
     commit_find(s, plan)
 }
 
-/// Whether `path` starts with a Windows drive (`D:\`, `d:/`).
-fn windows_drive(path: &str) -> bool {
-    let b = path.as_bytes();
-    b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':' && (b.len() == 2 || b[2] == b'\\' || b[2] == b'/')
-}
-
 /// `path` with its beginning `from` replaced by `to` (the Missing Photos window's Replace), or `None` when it
 /// doesn't begin with `from`. `from` is matched at a folder boundary (`D:\Photos` doesn't match
 /// `D:\Photos 2020\a.jpg`); a Windows path in any letter case and with either separator, any other path
@@ -1193,7 +1187,7 @@ mod relink_tests {
 
     #[test]
     fn each_proposed_path_says_what_is_there() {
-        let photo = |id, path: &str, size| FindCandidate { id: PhotoId(id), path: path.to_string(), size, hash: None };
+        let photo = |id, path: &str, size| FindCandidate { id: PhotoId(id), path: path.to_string(), size, hash: None, captured: None };
         let photos = [
             photo(1, "/old/a.jpg", 100),
             photo(2, "/old/b.jpg", 100),

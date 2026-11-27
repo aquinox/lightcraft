@@ -1377,8 +1377,6 @@ fn ui_commands_10(app: &mut LightcraftApp, ctx: &egui::Context, id: &str, p: &Va
             };
             match paths.split_first() {
                 Some((first, rest)) => crate::lightroom_import::import_batch(app, first, rest, &req),
-                    r
-                }
                 None => Ok(Value::Null),
             }
         }
